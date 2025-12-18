@@ -1,0 +1,28 @@
+.DS_Store
+.venv
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.vscode/
+.coverage
+coverage.xml
+
+# Python build
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Data artifacts
+data/raw/
+data/curated/
+data/marts/
+great_expectations/uncommitted/
+

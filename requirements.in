@@ -1,0 +1,18 @@
+# Core runtime dependencies (managed via pip-tools)
+prefect>=2.14,<3
+pandas>=2.2,<3
+numpy>=1.26,<3
+pandas-datareader>=0.10,<1
+duckdb>=1.1,<2
+pyarrow>=16,<18
+great-expectations>=0.18,<1
+python-dotenv>=1.0,<2
+sec-edgar-downloader>=5.0,<6
+tenacity>=9.0,<10
+loguru>=0.7,<0.8
+pyyaml>=6.0,<7
+dash>=2.17,<3
+
+# Tooling
+pip-tools>=7.4,<8
+
