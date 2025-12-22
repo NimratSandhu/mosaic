@@ -24,6 +24,9 @@ curate:
 validate:
 	PYTHONPATH=src $(PYTHON) -m flows.curate_data --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
 
+query-db:
+	PYTHONPATH=src $(PYTHON) -m db.query_db --list-tables
+
 run-dash:
 	PYTHONPATH=src:./ $(PYTHON) -m dash_app.app
 

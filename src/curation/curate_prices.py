@@ -85,12 +85,23 @@ def curate_daily_prices(run_date: date, raw_dir: Path | None = None, curated_dir
     combined["volume"] = pd.to_numeric(combined["volume"], errors="coerce").astype("Int64")  # Nullable int
     combined["source"] = combined["source"].astype(str)
     
-    # Filter to only the target date
-    combined = combined[combined["date"] == run_date].copy()
+    # Filter to target date or latest available date if exact match not found
+    date_filtered = combined[combined["date"] == run_date].copy()
     
-    if combined.empty:
-        logger.warning(f"No price data found for date {run_date}")
-        return pd.DataFrame()
+    if date_filtered.empty:
+        # Use latest available date (similar to ingestion logic)
+        if not combined.empty:
+            latest_date = combined["date"].max()
+            date_filtered = combined[combined["date"] == latest_date].copy()
+            logger.warning(
+                f"No exact match for {run_date}, using latest available date {latest_date} "
+                f"({len(date_filtered)} rows)"
+            )
+        else:
+            logger.warning(f"No price data found for date {run_date}")
+            return pd.DataFrame()
+    
+    combined = date_filtered
     
     # Deduplicate: keep last occurrence of same ticker+date
     before_dedup = len(combined)
