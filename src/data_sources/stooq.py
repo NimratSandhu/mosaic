@@ -8,7 +8,7 @@ from pandas_datareader import data as web
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from config.settings import get_settings
-from logging.setup import logger
+from logging_utils.setup import logger
 from utils.dates import date_partition
 from utils.paths import ensure_dir
 
@@ -39,8 +39,23 @@ def fetch_stooq_prices(ticker: str, run_date: date, raw_dir: Path | None = None)
         logger.error(f"Stooq fetch failed for {ticker}: {exc}")
         raise StooqFetchError from exc
 
+    if df.empty:
+        logger.warning(f"Empty DataFrame returned from Stooq for {ticker}")
+        return pd.DataFrame()
+
     df = df.reset_index()
-    df = df.rename(columns={"Date": "date"})
+    # Handle different possible date column names
+    date_col = None
+    for col in df.columns:
+        if col.lower() in ("date", "datetime"):
+            date_col = col
+            break
+    
+    if date_col is None:
+        logger.error(f"No date column found in Stooq data for {ticker}. Columns: {list(df.columns)}")
+        raise StooqFetchError(f"No date column found for {ticker}")
+    
+    df = df.rename(columns={date_col: "date"})
     df.columns = [c.lower() for c in df.columns]
     df = df.sort_values("date")
     df["ticker"] = ticker

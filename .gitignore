@@ -8,6 +8,7 @@ __pycache__/
 .vscode/
 .coverage
 coverage.xml
+venv/
 
 # Python build
 *.pyc

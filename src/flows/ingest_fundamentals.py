@@ -9,7 +9,7 @@ from prefect import flow, task
 
 from config.settings import get_settings
 from data_sources.sec import download_fundamentals
-from logging.setup import configure_logging, logger
+from logging_utils.setup import configure_logging, logger
 from utils.dates import parse_run_date
 
 

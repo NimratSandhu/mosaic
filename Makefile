@@ -9,7 +9,7 @@ ENV_FILE ?= .env
 install:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install pip-tools
-	$(PIP_SYNC) requirements.txt
+	$(PYTHON) -m pip install -r requirements.txt 'griffe<1.0'
 
 lock:
 	$(PIP_COMPILE) --generate-hashes --output-file=requirements.txt requirements.in

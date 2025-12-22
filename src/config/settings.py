@@ -30,6 +30,13 @@ class Settings:
     sec_edgar_user_agent: str = os.getenv(
         "SEC_EDGAR_USER_AGENT", "YourName your.email@example.com"
     )
+    sec_edgar_company_name: Optional[str] = os.getenv(
+        "SEC_EDGAR_COMPANY_NAME", "NimratSandhuProjectMosaic"
+    )
+
+    sec_edgar_user_email: str = os.getenv(
+        "SEC_EDGAR_USER_EMAIL", "nimsandhu16@gmail.com"
+    )
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 

@@ -13,6 +13,9 @@ loguru>=0.7,<0.8
 pyyaml>=6.0,<7
 dash>=2.17,<3
 
+# Transitive dependency constraints (prevent breaking changes)
+griffe<1.0  # Prefect 2.14.x requires griffe 0.x API (griffe.dataclasses)
+
 # Tooling
 pip-tools>=7.4,<8
 

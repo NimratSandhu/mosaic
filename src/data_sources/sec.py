@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 from sec_edgar_downloader import Downloader
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from config.settings import get_settings
-from logging.setup import logger
+from logging_utils.setup import logger
 from utils.paths import ensure_dir
 
 
@@ -30,8 +29,9 @@ def _quarter_from_date(dt: date) -> str:
 )
 def _download_filings(
     downloader: Downloader, filing_type: str, ticker: str, amount: int
-) -> List[str]:
-    return downloader.get(filing_type, ticker, amount=amount)
+) -> int:
+    """Download filings and return number of filings downloaded."""
+    return downloader.get(filing_type, ticker, limit=amount)
 
 
 def download_fundamentals(
@@ -50,35 +50,66 @@ def download_fundamentals(
     partition_dir = target_root / year / quarter
     ensure_dir(partition_dir)
 
+    # Downloader requires positional args: company_name, email_address, download_folder (optional)
     downloader = Downloader(
+        settings.sec_edgar_company_name,
+        settings.sec_edgar_user_email,
         download_folder=str(partition_dir),
-        user_agent=settings.sec_edgar_user_agent,
     )
 
     try:
-        file_paths = _download_filings(downloader, filing_type, ticker, amount)
-        if not file_paths and filing_type == "10-Q":
+        num_downloaded = _download_filings(downloader, filing_type, ticker, amount)
+        if num_downloaded == 0 and filing_type == "10-Q":
             logger.warning(f"No {filing_type} found for {ticker}, retrying with 10-K")
             filing_type = "10-K"
-            file_paths = _download_filings(downloader, filing_type, ticker, amount)
+            num_downloaded = _download_filings(downloader, filing_type, ticker, amount)
+    except ValueError as exc:
+        # Handle invalid ticker (e.g., BRK.B) gracefully
+        if "invalid" in str(exc).lower() or "cannot be mapped" in str(exc).lower():
+            logger.warning(f"Skipping {ticker}: {exc}")
+            # Return empty manifest
+            manifest = pd.DataFrame(
+                columns=["ticker", "filing_type", "download_time", "file_path", "source"]
+            )
+            output_path = partition_dir / f"{ticker}.parquet"
+            manifest.to_parquet(output_path, index=False)
+            return manifest
+        raise SecDownloadError from exc
     except Exception as exc:  # pragma: no cover - external dependency path
         logger.error(f"SEC download failed for {ticker}: {exc}")
         raise SecDownloadError from exc
 
+    # Find the actual downloaded files
+    # Files are saved as: {partition_dir}/{ticker}/{filing_type}/...
+    ticker_dir = partition_dir / ticker / filing_type
+    if ticker_dir.exists():
+        # Get all files recursively (excluding directories)
+        file_paths = [str(p) for p in ticker_dir.rglob("*") if p.is_file()]
+    else:
+        file_paths = []
+        if num_downloaded > 0:
+            logger.warning(f"Expected {num_downloaded} files for {ticker} but none found in {ticker_dir}")
+
     # Build simple manifest so raw layer is queryable
-    manifest = pd.DataFrame(
-        {
-            "ticker": [ticker] * len(file_paths),
-            "filing_type": [filing_type] * len(file_paths),
-            "download_time": [datetime.utcnow()] * len(file_paths),
-            "file_path": [str(Path(p).resolve()) for p in file_paths],
-            "source": ["sec_edgar"] * len(file_paths),
-        }
-    )
+    if file_paths:
+        manifest = pd.DataFrame(
+            {
+                "ticker": [ticker] * len(file_paths),
+                "filing_type": [filing_type] * len(file_paths),
+                "download_time": [datetime.utcnow()] * len(file_paths),
+                "file_path": [str(Path(p).resolve()) for p in file_paths],
+                "source": ["sec_edgar"] * len(file_paths),
+            }
+        )
+    else:
+        # Create empty manifest if no files found
+        manifest = pd.DataFrame(
+            columns=["ticker", "filing_type", "download_time", "file_path", "source"]
+        )
 
     output_path = partition_dir / f"{ticker}.parquet"
     manifest.to_parquet(output_path, index=False)
-    logger.info(f"Saved SEC manifest for {ticker} to {output_path}")
+    logger.info(f"Saved SEC manifest for {ticker} to {output_path} ({len(file_paths)} files)")
     return manifest
 
 
