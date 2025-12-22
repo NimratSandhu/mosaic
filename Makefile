@@ -4,7 +4,7 @@ PIP_COMPILE ?= pip-compile
 
 ENV_FILE ?= .env
 
-.PHONY: install lock ingest-daily run-dash fmt lint
+.PHONY: install lock ingest-daily curate validate run-dash fmt lint
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -17,6 +17,12 @@ lock:
 ingest-daily:
 	PYTHONPATH=src $(PYTHON) -m flows.ingest_prices --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
 	PYTHONPATH=src $(PYTHON) -m flows.ingest_fundamentals --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
+
+curate:
+	PYTHONPATH=src $(PYTHON) -m flows.curate_data --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
+
+validate:
+	PYTHONPATH=src $(PYTHON) -m flows.curate_data --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
 
 run-dash:
 	PYTHONPATH=src:./ $(PYTHON) -m dash_app.app

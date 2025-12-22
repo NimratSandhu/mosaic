@@ -2,11 +2,13 @@
 
 Milestone 1 delivers the ingestion foundation: project skeleton, pip-tools environment, Prefect flows for prices (Stooq) and fundamentals (SEC), and Docker/Make targets.
 
+Milestone 2 adds data curation: ETL transforms raw data into curated Parquet tables, Great Expectations validation, and DuckDB integration for analytical queries.
+
 ## Layout
-- `src/` — Python packages (`config`, `data_sources`, `flows`, `logging_utils`, `utils`)
+- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `logging_utils`, `utils`)
 - `data/raw/`, `data/curated/`, `data/marts/` — data lake layers (raw is gitignored)
 - `config/universe/sp100.csv` — default universe list
-- `great_expectations/` — placeholder for future validation suites
+- `great_expectations/` — Great Expectations validation suites
 - `dash_app/` — placeholder Dash app
 
 ## Setup (Local Development)
@@ -43,8 +45,11 @@ RUN_DATE=2024-12-01 make ingest-daily
 # Run for today (default)
 make ingest-daily
 
-# Run individual flows
-PYTHONPATH=src make ingest-prices  # Not in Makefile yet, use Option 2
+# Curate raw data into curated layer (includes validation and DuckDB loading)
+RUN_DATE=2024-12-01 make curate
+
+# Run curation for today (default)
+make curate
 ```
 
 ### Option 2: Direct Python Execution
@@ -59,6 +64,9 @@ PYTHONPATH=src python -m flows.ingest_prices
 
 # Run fundamentals ingestion
 PYTHONPATH=src python -m flows.ingest_fundamentals --run-date 2024-12-01
+
+# Run curation flow (curates prices and fundamentals, validates, loads to DuckDB)
+PYTHONPATH=src python -m flows.curate_data --run-date 2024-12-01
 ```
 
 ## Running with Docker
@@ -93,11 +101,23 @@ docker run --rm -it \
 ## Other Commands
 - `make install` — install pinned deps with pip-tools
 - `make lock` — regenerate `requirements.txt` from `requirements.in`
+- `make curate` — curate raw data (ETL, validate, load to DuckDB)
+- `make validate` — alias for `make curate` (runs validation as part of curation)
 - `make run-dash` — start placeholder Dash server (Milestone 4 will replace)
 
-## Data conventions
+## Data Conventions
+
+### Raw Layer
 - Raw prices: `data/raw/prices_stooq/YYYY/MM/DD/{ticker}.parquet`
 - Raw fundamentals manifest: `data/raw/fundamentals_sec/YYYY/Qx/{ticker}.parquet` plus downloaded filings under the same partition
+
+### Curated Layer
+- Curated daily prices: `data/curated/daily_prices/YYYY/MM/DD/YYYY-MM-DD.parquet` (one file per day with all tickers)
+- Curated quarterly fundamentals: `data/curated/quarterly_fundamentals/YYYY/Qx/YYYY_Qx.parquet` (one file per quarter)
+
+### DuckDB Database
+- Database file: `data/marts/duckdb/mosaic.duckdb`
+- Tables: `curated.daily_prices`, `curated.quarterly_fundamentals`
 
 ## Docker
 ```
