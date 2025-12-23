@@ -6,12 +6,17 @@ Milestone 2 adds data curation: ETL transforms raw data into curated Parquet tab
 
 Milestone 3 implements the feature engine: calculates price features (20d realized vol, 60d momentum, 5d mean reversion Z-score), fundamental features (YoY revenue growth proxies), signal scoring (Z-score normalization), and position generation (top N longs, bottom N shorts).
 
+Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short candidate tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
+
+Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
+
 ## Layout
 - `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `features`, `logging_utils`, `utils`)
 - `data/raw/`, `data/curated/`, `data/marts/` — data lake layers (raw is gitignored)
 - `config/universe/sp100.csv` — default universe list
 - `great_expectations/` — Great Expectations validation suites
-- `dash_app/` — placeholder Dash app
+- `dash_app/` — Dash application with Market Overview and Single Name Deep Dive pages
+- `src/dashboard/` — Dashboard data access layer
 
 ## Setup (Local Development)
 
@@ -78,6 +83,11 @@ PYTHONPATH=src python -m flows.curate_data --run-date 2024-12-01
 
 # Run feature engine flow (calculates features, scores signals, generates positions)
 PYTHONPATH=src python -m flows.build_features --run-date 2024-12-01
+
+# Run dashboard
+PYTHONPATH=src:./ python -m dash_app.app
+# Or use make:
+make run-dash
 ```
 
 ## Running with Docker
@@ -116,7 +126,7 @@ docker run --rm -it \
 - `make validate` — alias for `make curate` (runs validation as part of curation)
 - `make build-features` — build features, signals, and positions (Milestone 3)
 - `make query-db` — list tables in DuckDB database
-- `make run-dash` — start placeholder Dash server (Milestone 4 will replace)
+- `make run-dash` — start Dash server (Market Overview and Single Name Deep Dive pages)
 
 ## Data Conventions
 
