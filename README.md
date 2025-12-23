@@ -4,8 +4,10 @@ Milestone 1 delivers the ingestion foundation: project skeleton, pip-tools envir
 
 Milestone 2 adds data curation: ETL transforms raw data into curated Parquet tables, Great Expectations validation, and DuckDB integration for analytical queries.
 
+Milestone 3 implements the feature engine: calculates price features (20d realized vol, 60d momentum, 5d mean reversion Z-score), fundamental features (YoY revenue growth proxies), signal scoring (Z-score normalization), and position generation (top N longs, bottom N shorts).
+
 ## Layout
-- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `logging_utils`, `utils`)
+- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `features`, `logging_utils`, `utils`)
 - `data/raw/`, `data/curated/`, `data/marts/` — data lake layers (raw is gitignored)
 - `config/universe/sp100.csv` — default universe list
 - `great_expectations/` — Great Expectations validation suites
@@ -50,6 +52,12 @@ RUN_DATE=2024-12-01 make curate
 
 # Run curation for today (default)
 make curate
+
+# Build features, signals, and positions
+RUN_DATE=2024-12-01 make build-features
+
+# Run feature engine for today (default)
+make build-features
 ```
 
 ### Option 2: Direct Python Execution
@@ -67,6 +75,9 @@ PYTHONPATH=src python -m flows.ingest_fundamentals --run-date 2024-12-01
 
 # Run curation flow (curates prices and fundamentals, validates, loads to DuckDB)
 PYTHONPATH=src python -m flows.curate_data --run-date 2024-12-01
+
+# Run feature engine flow (calculates features, scores signals, generates positions)
+PYTHONPATH=src python -m flows.build_features --run-date 2024-12-01
 ```
 
 ## Running with Docker
@@ -103,6 +114,8 @@ docker run --rm -it \
 - `make lock` — regenerate `requirements.txt` from `requirements.in`
 - `make curate` — curate raw data (ETL, validate, load to DuckDB)
 - `make validate` — alias for `make curate` (runs validation as part of curation)
+- `make build-features` — build features, signals, and positions (Milestone 3)
+- `make query-db` — list tables in DuckDB database
 - `make run-dash` — start placeholder Dash server (Milestone 4 will replace)
 
 ## Data Conventions
@@ -117,7 +130,13 @@ docker run --rm -it \
 
 ### DuckDB Database
 - Database file: `data/marts/duckdb/mosaic.duckdb`
-- Tables: `curated.daily_prices`, `curated.quarterly_fundamentals`
+- Tables: 
+  - `curated.daily_prices`, `curated.quarterly_fundamentals`
+  - `marts.signal_scores`, `marts.positions`
+
+### Marts Layer
+- Signal scores: `data/marts/signal_scores/YYYY-MM-DD.parquet` (normalized Z-scores per ticker)
+- Positions: `data/marts/positions/YYYY-MM-DD.parquet` (top N longs, bottom N shorts)
 
 ## Docker
 ```

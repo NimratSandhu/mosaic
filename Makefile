@@ -4,7 +4,7 @@ PIP_COMPILE ?= pip-compile
 
 ENV_FILE ?= .env
 
-.PHONY: install lock ingest-daily curate validate run-dash fmt lint
+.PHONY: install lock ingest-daily curate validate build-features run-dash fmt lint
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -26,6 +26,12 @@ validate:
 
 query-db:
 	PYTHONPATH=src $(PYTHON) -m db.query_db --list-tables
+
+backfill:
+	PYTHONPATH=src $(PYTHON) scripts/backfill_data.py --target-date $${TARGET_DATE:-$$(date +%Y-%m-%d)} --run-features
+
+build-features:
+	PYTHONPATH=src $(PYTHON) -m flows.build_features --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
 
 run-dash:
 	PYTHONPATH=src:./ $(PYTHON) -m dash_app.app

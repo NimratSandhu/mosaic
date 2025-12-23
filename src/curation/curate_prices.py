@@ -82,7 +82,10 @@ def curate_daily_prices(run_date: date, raw_dir: Path | None = None, curated_dir
     combined["high"] = pd.to_numeric(combined["high"], errors="coerce")
     combined["low"] = pd.to_numeric(combined["low"], errors="coerce")
     combined["close"] = pd.to_numeric(combined["close"], errors="coerce")
-    combined["volume"] = pd.to_numeric(combined["volume"], errors="coerce").astype("Int64")  # Nullable int
+    # Convert volume to nullable int, handling float values by rounding first
+    volume_numeric = pd.to_numeric(combined["volume"], errors="coerce")
+    # Round to nearest int before converting (handles float64 values)
+    combined["volume"] = volume_numeric.round().astype("Int64")  # Nullable int
     combined["source"] = combined["source"].astype(str)
     
     # Filter to target date or latest available date if exact match not found
@@ -112,13 +115,26 @@ def curate_daily_prices(run_date: date, raw_dir: Path | None = None, curated_dir
     # Sort by ticker for consistent output
     combined = combined.sort_values("ticker").reset_index(drop=True)
     
-    # Write to curated layer
-    curated_date_dir = curated_root / "daily_prices" / partition
-    ensure_dir(curated_date_dir)
-    output_path = curated_date_dir / f"{run_date:%Y-%m-%d}.parquet"
+    # Save all dates found in the raw data (for historical data accumulation)
+    # This allows feature calculation to have access to historical data
+    dates_saved = 0
+    for date_val in combined["date"].unique():
+        date_dt = pd.Timestamp(date_val).date()
+        date_partition_str = date_partition(date_dt)
+        date_output_dir = curated_root / "daily_prices" / date_partition_str
+        ensure_dir(date_output_dir)
+        date_output_path = date_output_dir / f"{date_dt:%Y-%m-%d}.parquet"
+        
+        date_data = combined[combined["date"] == date_val].copy()
+        date_data.to_parquet(date_output_path, index=False)
+        dates_saved += 1
     
-    combined.to_parquet(output_path, index=False)
-    logger.info(f"Saved curated prices to {output_path} ({len(combined)} rows, {combined['ticker'].nunique()} tickers)")
+    # Return only the run_date data (or latest if run_date not found)
+    output_path = curated_root / "daily_prices" / partition / f"{run_date:%Y-%m-%d}.parquet"
+    logger.info(
+        f"Saved curated prices for {dates_saved} date(s) including {run_date} "
+        f"({len(combined)} rows for run_date, {combined['ticker'].nunique()} tickers)"
+    )
     
     return combined
 

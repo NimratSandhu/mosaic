@@ -44,8 +44,8 @@ def curate_and_validate_prices(run_date_str: str) -> None:
         logger.error(f"Validation failed for {run_dt}: {validation_results['errors']}")
         # Don't fail the task, but log the errors
     
-    # Load into DuckDB
-    load_curated_prices_to_db(run_dt, if_exists="replace")
+    # Load into DuckDB (append mode to accumulate historical data)
+    load_curated_prices_to_db(run_dt, if_exists="append")
     
     logger.info(f"Completed price curation for {run_dt}")
 

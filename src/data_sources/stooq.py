@@ -66,19 +66,31 @@ def fetch_stooq_prices(ticker: str, run_date: date, raw_dir: Path | None = None)
         logger.warning(f"No Stooq data available for {ticker} up to {run_date}")
         return df_window
 
+    # Save all historical data to enable feature calculation
+    # Save each date to its own partition so curation can process them
+    dates_saved = 0
+    for date_val in df_window["date"].unique():
+        date_dt = pd.Timestamp(date_val).date()
+        partition = date_partition(date_dt)
+        output_dir = target_dir / partition
+        ensure_dir(output_dir)
+        output_path = output_dir / f"{ticker}.parquet"
+        
+        # Get data for this specific date
+        df_date = df_window[df_window["date"] == pd.Timestamp(date_val)]
+        if not df_date.empty:
+            df_date.to_parquet(output_path, index=False)
+            dates_saved += 1
+    
+    # Return the data for run_date (or latest available)
     df_selected = df_window[df_window["date"] == pd.Timestamp(run_date)]
     if df_selected.empty:
         df_selected = df_window.tail(1)
         logger.warning(
             f"No exact match for {ticker} on {run_date}, using latest prior date {df_selected.iloc[-1]['date'].date()}"
         )
-
-    partition = date_partition(run_date)
-    output_dir = target_dir / partition
-    ensure_dir(output_dir)
-    output_path = output_dir / f"{ticker}.parquet"
-    df_selected.to_parquet(output_path, index=False)
-    logger.info(f"Saved Stooq prices for {ticker} to {output_path}")
+    
+    logger.info(f"Saved Stooq prices for {ticker} ({dates_saved} days of history) to {target_dir}")
     return df_selected
 
 
