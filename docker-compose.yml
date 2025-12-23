@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  mosaic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: unified-signal-platform:latest
+    container_name: mosaic-platform
+    ports:
+      - "8050:8050"
+    environment:
+      - PYTHONPATH=/app/src:/app
+      - PREFECT_HOME=/opt/prefect
+      - DUCKDB_THREADS=2
+      # Load from .env file if it exists
+    env_file:
+      - .env
+    volumes:
+      # Mount data directory for persistence
+      - ./data:/app/data
+      # Mount config for universe file
+      - ./config:/app/config:ro
+    # Memory limits for free-tier compatibility (512MB)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Restart policy
+    restart: unless-stopped
+    # Default command runs dashboard
+    command: python -m dash_app.app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8050/_dash-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Separate service for ingestion (can be run on-demand)
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: unified-signal-platform:latest
+    container_name: mosaic-ingest
+    environment:
+      - PYTHONPATH=/app/src:/app
+      - PREFECT_HOME=/opt/prefect
+      - DUCKDB_THREADS=2
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Run ingestion and exit
+    command: sh -c "python -m flows.ingest_prices --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)} && python -m flows.ingest_fundamentals --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}"
+    profiles:
+      - ingest-only
+

@@ -8,15 +8,21 @@ Milestone 3 implements the feature engine: calculates price features (20d realiz
 
 Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short candidate tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
 
+Milestone 5 provides deployment hardening: optimized Dockerfile with multi-stage build, docker-compose.yml for single-command deployment, memory-efficient configuration (512MB limit for free-tier hosting), and comprehensive Makefile commands for both local and Docker workflows.
+
 Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
 
 ## Layout
-- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `features`, `logging_utils`, `utils`)
+- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `features`, `dashboard`, `logging_utils`, `utils`)
 - `data/raw/`, `data/curated/`, `data/marts/` — data lake layers (raw is gitignored)
 - `config/universe/sp100.csv` — default universe list
 - `great_expectations/` — Great Expectations validation suites
 - `dash_app/` — Dash application with Market Overview and Single Name Deep Dive pages
 - `src/dashboard/` — Dashboard data access layer
+- `Dockerfile` — Multi-stage Docker build for production deployment
+- `docker-compose.yml` — Single-command deployment configuration
+- `render.yaml` — Render.com deployment configuration
+- `DEPLOYMENT.md` — Comprehensive deployment guide
 
 ## Setup (Local Development)
 
@@ -90,32 +96,85 @@ PYTHONPATH=src:./ python -m dash_app.app
 make run-dash
 ```
 
-## Running with Docker
+## Running with Docker (Milestone 5)
 
-Docker is **optional** for local development but useful for consistent environments:
+Docker deployment is optimized for production and free-tier hosting (e.g., Render):
+
+### Quick Start
 
 ```bash
-# Build the image
-docker build -t unified-signal .
+# Build the Docker image
+make build
+# Or: docker build -t unified-signal-platform:latest .
 
-# Run price ingestion (default CMD)
+# Deploy everything (dashboard + ingestion)
+make deploy
+# Or: docker-compose up -d
+
+# Run ingestion only
+make docker-ingest
+# Or: RUN_DATE=2024-12-01 docker-compose run --rm ingest
+
+# Run dashboard only
+make docker-dash
+# Or: docker-compose up mosaic
+
+# Stop services
+make docker-down
+# Or: docker-compose down
+```
+
+### Docker Compose Services
+
+The `docker-compose.yml` defines two services:
+
+1. **mosaic** (default): Runs the dashboard on port 8050
+   - Memory limit: 512MB (free-tier compatible)
+   - Auto-restart on failure
+   - Health checks enabled
+
+2. **ingest**: On-demand ingestion service
+   - Run with: `docker-compose run --rm ingest`
+   - Exits after completion
+
+### Manual Docker Commands
+
+```bash
+# Build image
+docker build -t unified-signal-platform:latest .
+
+# Run dashboard
+docker run -d \
+  --name mosaic-dash \
+  -p 8050:8050 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/config:/app/config:ro \
+  --env-file .env \
+  unified-signal-platform:latest
+
+# Run ingestion
 docker run --rm \
   -v $(pwd)/data:/app/data \
-  -v $(pwd)/.env:/app/.env \
-  unified-signal
+  -v $(pwd)/config:/app/config:ro \
+  --env-file .env \
+  unified-signal-platform:latest \
+  sh -c "python -m flows.ingest_prices --run-date 2024-12-01 && python -m flows.ingest_fundamentals --run-date 2024-12-01"
 
-# Run fundamentals ingestion
-docker run --rm \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/.env:/app/.env \
-  unified-signal python -m flows.ingest_fundamentals --run-date 2024-12-01
-
-# Interactive shell for debugging
+# Interactive shell
 docker run --rm -it \
   -v $(pwd)/data:/app/data \
-  -v $(pwd)/.env:/app/.env \
-  unified-signal /bin/bash
+  -v $(pwd)/config:/app/config:ro \
+  --env-file .env \
+  unified-signal-platform:latest /bin/bash
 ```
+
+### Memory Optimization
+
+The Dockerfile is optimized for memory-constrained environments:
+- Multi-stage build reduces image size
+- DuckDB threads limited to 2 (`DUCKDB_THREADS=2`)
+- Memory limits set to 512MB (suitable for free-tier Render)
+- Health checks for container monitoring
 
 **Note:** Mount `data/` as a volume so ingested data persists outside the container.
 

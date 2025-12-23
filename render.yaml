@@ -1,0 +1,29 @@
+# Render.com deployment configuration
+# This file enables one-click deployment to Render's free tier
+
+services:
+  - type: web
+    name: mosaic-signal-platform
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PYTHONPATH
+        value: /app/src:/app
+      - key: PREFECT_HOME
+        value: /opt/prefect
+      - key: DUCKDB_THREADS
+        value: "2"
+      - key: SEC_EDGAR_USER_AGENT
+        sync: false  # Set in Render dashboard
+      - key: SEC_EDGAR_USER_EMAIL
+        sync: false  # Set in Render dashboard
+      - key: SEC_EDGAR_COMPANY_NAME
+        value: MosaicSignalPlatform
+    healthCheckPath: /_dash-health
+    disk:
+      name: mosaic-data
+      mountPath: /app/data
+      sizeGB: 1
+

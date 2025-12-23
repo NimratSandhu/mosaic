@@ -1,0 +1,75 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data (will be mounted as volumes)
+data/raw/
+data/curated/
+data/marts/
+*.duckdb
+*.parquet
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Great Expectations uncommitted
+great_expectations/uncommitted/
+
+# Scripts (include in container - backfill_data.py may be useful)
+# scripts/  # Commented out to include scripts in build
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+

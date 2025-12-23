@@ -1,10 +1,12 @@
 PYTHON ?= python3
 PIP_SYNC ?= pip-sync
 PIP_COMPILE ?= pip-compile
+DOCKER ?= docker
+DOCKER_COMPOSE ?= docker-compose
 
 ENV_FILE ?= .env
 
-.PHONY: install lock ingest-daily curate validate build-features run-dash fmt lint
+.PHONY: install lock ingest-daily curate validate build-features run-dash fmt lint build docker-build docker-up docker-down docker-ingest docker-dash
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -35,6 +37,34 @@ build-features:
 
 run-dash:
 	PYTHONPATH=src:./ $(PYTHON) -m dash_app.app
+
+# Docker commands
+build: docker-build
+
+docker-build:
+	$(DOCKER) build -t unified-signal-platform:latest .
+
+docker-up:
+	$(DOCKER_COMPOSE) up -d mosaic
+
+docker-down:
+	$(DOCKER_COMPOSE) down
+
+docker-ingest:
+	RUN_DATE=$${RUN_DATE:-$$(date +%Y-%m-%d)} $(DOCKER_COMPOSE) run --rm ingest
+
+docker-dash:
+	$(DOCKER_COMPOSE) up mosaic
+
+# Combined commands for easy deployment
+deploy: docker-build docker-up
+	@echo "Platform deployed! Dashboard available at http://localhost:8050"
+
+# Local development (non-Docker)
+dev-ingest: ingest-daily
+dev-curate: curate
+dev-features: build-features
+dev-dash: run-dash
 
 fmt:
 	$(PYTHON) -m pip install ruff
