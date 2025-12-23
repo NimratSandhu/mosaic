@@ -1,0 +1,290 @@
+/* Modern Dark Theme for Signal Monitoring Platform */
+
+/* Import modern font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.6;
+}
+
+/* Header Styles */
+.page-header {
+    color: #f1f5f9;
+    font-weight: 600;
+    font-size: 28px;
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+}
+
+/* Navigation Styles */
+nav {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-bottom: 1px solid #334155;
+    padding: 12px 24px !important;
+}
+
+nav a {
+    color: #cbd5e1 !important;
+    text-decoration: none !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin-right: 8px !important;
+}
+
+nav a:hover {
+    background-color: #334155;
+    color: #f1f5f9 !important;
+}
+
+/* Main Header */
+h1 {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    color: white !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    font-weight: 700 !important;
+    font-size: 32px !important;
+    letter-spacing: -0.5px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Section Headers */
+h3 {
+    color: #f1f5f9 !important;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    margin-bottom: 16px !important;
+    letter-spacing: -0.3px;
+}
+
+/* Labels */
+label {
+    color: #cbd5e1 !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+}
+
+/* Dropdown Styles */
+.Select-control,
+.Select-menu-outer {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+.Select-placeholder,
+.Select-value-label {
+    color: #e2e8f0 !important;
+}
+
+.Select-option {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+.Select-option:hover,
+.Select-option.is-focused {
+    background-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+.Select.is-focused > .Select-control {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Input Styles */
+input[type="text"],
+input[type="number"] {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+    border-color: #3b82f6 !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Card/Container Styles */
+.dash-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Table Styles (Ag Grid) */
+.ag-theme-alpine-dark {
+    --ag-background-color: #1e293b;
+    --ag-header-background-color: #0f172a;
+    --ag-odd-row-background-color: #1e293b;
+    --ag-row-hover-color: #334155;
+    --ag-selected-row-background-color: #1e40af;
+    --ag-border-color: #334155;
+    --ag-header-foreground-color: #f1f5f9;
+    --ag-foreground-color: #e2e8f0;
+    --ag-font-family: 'Inter', sans-serif;
+    --ag-font-size: 14px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Graph Container */
+.dash-graph {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+/* Plotly Dark Theme Override */
+.plotly {
+    background-color: transparent !important;
+}
+
+.plotly .modebar {
+    background-color: #1e293b !important;
+}
+
+.plotly .modebar-btn {
+    color: #e2e8f0 !important;
+}
+
+.plotly .modebar-btn:hover {
+    background-color: #334155 !important;
+}
+
+/* Signal Score Display */
+.signal-score {
+    font-size: 24px;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 8px;
+    display: inline-block;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+}
+
+.signal-score.positive {
+    color: #10b981;
+}
+
+.signal-score.negative {
+    color: #ef4444;
+}
+
+/* Filter Container */
+.filter-container {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Button Styles */
+button {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+/* Link Styles */
+a {
+    color: #60a5fa;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #93c5fd;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-header {
+        font-size: 24px;
+    }
+    
+    h1 {
+        font-size: 24px !important;
+        padding: 16px !important;
+    }
+    
+    .filter-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* Loading Spinner */
+.dash-spinner {
+    border-color: #3b82f6;
+}
+
+/* Tooltip Styles */
+.dash-tooltip {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+}
+

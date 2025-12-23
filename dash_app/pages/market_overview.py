@@ -32,7 +32,15 @@ def create_market_overview_layout() -> html.Div:
                 [
                     html.Div(
                         [
-                            html.Label("Date:", style={"marginRight": "10px"}),
+                            html.Label(
+                                "Date:",
+                                style={
+                                    "marginRight": "10px",
+                                    "color": "#cbd5e1",
+                                    "fontWeight": "500",
+                                    "fontSize": "14px",
+                                },
+                            ),
                             dcc.Dropdown(
                                 id="date-filter",
                                 options=[
@@ -42,13 +50,22 @@ def create_market_overview_layout() -> html.Div:
                                 value=latest_date.isoformat() if latest_date else None,
                                 clearable=False,
                                 style={"width": "200px"},
+                                className="dark-dropdown",
                             ),
                         ],
                         style={"display": "inline-block", "marginRight": "30px"},
                     ),
                     html.Div(
                         [
-                            html.Label("Sector:", style={"marginRight": "10px"}),
+                            html.Label(
+                                "Sector:",
+                                style={
+                                    "marginRight": "10px",
+                                    "color": "#cbd5e1",
+                                    "fontWeight": "500",
+                                    "fontSize": "14px",
+                                },
+                            ),
                             dcc.Dropdown(
                                 id="sector-filter",
                                 options=[{"label": "All Sectors", "value": "ALL"}]
@@ -56,18 +73,38 @@ def create_market_overview_layout() -> html.Div:
                                 value="ALL",
                                 clearable=False,
                                 style={"width": "250px"},
+                                className="dark-dropdown",
                             ),
                         ],
                         style={"display": "inline-block"},
                     ),
                 ],
-                style={"marginBottom": "30px"},
+                className="filter-container",
+                style={
+                    "backgroundColor": "#1e293b",
+                    "border": "1px solid #334155",
+                    "borderRadius": "12px",
+                    "padding": "20px",
+                    "marginBottom": "24px",
+                    "display": "flex",
+                    "gap": "24px",
+                    "alignItems": "center",
+                    "flexWrap": "wrap",
+                },
             ),
             html.Div(
                 [
                     html.Div(
                         [
-                            html.H3("Top Long Candidates", style={"marginBottom": "15px"}),
+                            html.H3(
+                                "Top Long Candidates",
+                                style={
+                                    "marginBottom": "15px",
+                                    "color": "#f1f5f9",
+                                    "fontWeight": "600",
+                                    "fontSize": "20px",
+                                },
+                            ),
                             dag.AgGrid(
                                 id="long-candidates-table",
                                 columnDefs=[
@@ -112,13 +149,31 @@ def create_market_overview_layout() -> html.Div:
                                     "paginationPageSize": 10,
                                 },
                                 style={"height": "400px", "width": "100%"},
+                                className="ag-theme-alpine-dark",
                             ),
                         ],
-                        style={"width": "48%", "display": "inline-block", "marginRight": "2%"},
+                        style={
+                            "width": "48%",
+                            "display": "inline-block",
+                            "marginRight": "2%",
+                            "backgroundColor": "#1e293b",
+                            "border": "1px solid #334155",
+                            "borderRadius": "12px",
+                            "padding": "20px",
+                            "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.2)",
+                        },
                     ),
                     html.Div(
                         [
-                            html.H3("Top Short Candidates", style={"marginBottom": "15px"}),
+                            html.H3(
+                                "Top Short Candidates",
+                                style={
+                                    "marginBottom": "15px",
+                                    "color": "#f1f5f9",
+                                    "fontWeight": "600",
+                                    "fontSize": "20px",
+                                },
+                            ),
                             dag.AgGrid(
                                 id="short-candidates-table",
                                 columnDefs=[
@@ -163,22 +218,50 @@ def create_market_overview_layout() -> html.Div:
                                     "paginationPageSize": 10,
                                 },
                                 style={"height": "400px", "width": "100%"},
+                                className="ag-theme-alpine-dark",
                             ),
                         ],
-                        style={"width": "48%", "display": "inline-block"},
+                        style={
+                            "width": "48%",
+                            "display": "inline-block",
+                            "backgroundColor": "#1e293b",
+                            "border": "1px solid #334155",
+                            "borderRadius": "12px",
+                            "padding": "20px",
+                            "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.2)",
+                        },
                     ),
                 ],
                 style={"marginBottom": "30px"},
             ),
             html.Div(
                 [
-                    html.H3("Sector Exposure", style={"marginBottom": "15px"}),
+                    html.H3(
+                        "Sector Exposure",
+                        style={
+                            "marginBottom": "15px",
+                            "color": "#f1f5f9",
+                            "fontWeight": "600",
+                            "fontSize": "20px",
+                        },
+                    ),
                     dcc.Graph(id="sector-exposure-chart"),
                 ],
-                style={"marginBottom": "30px"},
+                style={
+                    "marginBottom": "30px",
+                    "backgroundColor": "#1e293b",
+                    "border": "1px solid #334155",
+                    "borderRadius": "12px",
+                    "padding": "20px",
+                    "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.2)",
+                },
             ),
         ],
-        style={"padding": "20px"},
+        style={
+            "padding": "32px",
+            "backgroundColor": "#0f172a",
+            "minHeight": "100vh",
+        },
     )
 
 
@@ -229,7 +312,7 @@ def update_market_overview(selected_date: str, selected_sector: str) -> tuple:
     # Get sector exposure
     exposure_df = get_sector_exposure(as_of_date=as_of_date)
     
-    # Create sector exposure chart
+    # Create sector exposure chart with dark theme
     if exposure_df.empty:
         fig = go.Figure()
         fig.add_annotation(
@@ -239,6 +322,12 @@ def update_market_overview(selected_date: str, selected_sector: str) -> tuple:
             x=0.5,
             y=0.5,
             showarrow=False,
+            font=dict(color="#e2e8f0", size=16),
+        )
+        fig.update_layout(
+            paper_bgcolor="#1e293b",
+            plot_bgcolor="#1e293b",
+            font=dict(color="#e2e8f0", family="Inter, sans-serif"),
         )
     else:
         fig = go.Figure()
@@ -247,8 +336,10 @@ def update_market_overview(selected_date: str, selected_sector: str) -> tuple:
                 x=exposure_df["sector"],
                 y=exposure_df["long_count"],
                 name="Longs",
-                marker_color="green",
-                opacity=0.7,
+                marker_color="#10b981",
+                opacity=0.8,
+                marker_line_color="#059669",
+                marker_line_width=1,
             )
         )
         fig.add_trace(
@@ -256,17 +347,43 @@ def update_market_overview(selected_date: str, selected_sector: str) -> tuple:
                 x=exposure_df["sector"],
                 y=-exposure_df["short_count"],
                 name="Shorts",
-                marker_color="red",
-                opacity=0.7,
+                marker_color="#ef4444",
+                opacity=0.8,
+                marker_line_color="#dc2626",
+                marker_line_width=1,
             )
         )
         fig.update_layout(
-            title="Sector Exposure (Longs vs Shorts)",
-            xaxis_title="Sector",
-            yaxis_title="Position Count",
+            title=dict(
+                text="Sector Exposure (Longs vs Shorts)",
+                font=dict(color="#f1f5f9", size=18, family="Inter, sans-serif"),
+            ),
+            xaxis=dict(
+                title="Sector",
+                #titlefont=dict(color="#cbd5e1", size=14),
+                tickfont=dict(color="#94a3b8", size=12),
+                gridcolor="#334155",
+                linecolor="#475569",
+            ),
+            yaxis=dict(
+                title="Position Count",
+                #titlefont=dict(color="#cbd5e1", size=14),
+                tickfont=dict(color="#94a3b8", size=12),
+                gridcolor="#334155",
+                linecolor="#475569",
+            ),
             barmode="overlay",
             hovermode="x unified",
             height=400,
+            paper_bgcolor="#1e293b",
+            plot_bgcolor="#1e293b",
+            font=dict(color="#e2e8f0", family="Inter, sans-serif"),
+            legend=dict(
+                bgcolor="#0f172a",
+                bordercolor="#334155",
+                borderwidth=1,
+                font=dict(color="#e2e8f0", size=12),
+            ),
         )
     
     return long_data, short_data, fig

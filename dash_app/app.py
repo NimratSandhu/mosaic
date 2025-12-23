@@ -9,22 +9,32 @@ from dash.dependencies import Input, Output
 from dash_app.pages.market_overview import create_market_overview_layout
 from dash_app.pages.single_name import create_single_name_layout
 
-# Initialize Dash app
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+# Initialize Dash app with dark theme
+app = dash.Dash(
+    __name__,
+    suppress_callback_exceptions=True,
+    external_stylesheets=[
+        # Add any external stylesheets if needed
+    ],
+)
 
 # Define app layout with navigation
 app.layout = html.Div(
     [
-        # Header
+        # Header with modern styling
         html.Div(
             [
                 html.H1(
                     "Unified Signal Monitoring Platform",
                     style={
                         "margin": "0",
-                        "padding": "20px",
-                        "backgroundColor": "#1f77b4",
+                        "padding": "24px",
+                        "background": "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
                         "color": "white",
+                        "fontWeight": "700",
+                        "fontSize": "32px",
+                        "letterSpacing": "-0.5px",
+                        "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
                     },
                 ),
                 html.Nav(
@@ -32,33 +42,53 @@ app.layout = html.Div(
                         dcc.Link(
                             "Market Overview",
                             href="/",
+                            className="nav-link",
                             style={
-                                "marginRight": "20px",
-                                "color": "white",
+                                "marginRight": "8px",
+                                "color": "#cbd5e1",
                                 "textDecoration": "none",
-                                "fontSize": "18px",
+                                "fontSize": "16px",
+                                "fontWeight": "500",
+                                "padding": "8px 16px",
+                                "borderRadius": "6px",
+                                "transition": "all 0.2s ease",
+                                "display": "inline-block",
                             },
                         ),
                         dcc.Link(
                             "Single Name Deep Dive",
                             href="/single-name",
+                            className="nav-link",
                             style={
-                                "color": "white",
+                                "color": "#cbd5e1",
                                 "textDecoration": "none",
-                                "fontSize": "18px",
+                                "fontSize": "16px",
+                                "fontWeight": "500",
+                                "padding": "8px 16px",
+                                "borderRadius": "6px",
+                                "transition": "all 0.2s ease",
+                                "display": "inline-block",
                             },
                         ),
                     ],
                     style={
-                        "padding": "10px 20px",
-                        "backgroundColor": "#2c3e50",
+                        "padding": "12px 24px",
+                        "background": "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                        "borderBottom": "1px solid #334155",
                     },
                 ),
             ]
         ),
-        # Content area
+        # Content area with dark background
         dcc.Location(id="url", refresh=False),
-        html.Div(id="page-content", style={"minHeight": "600px"}),
+        html.Div(
+            id="page-content",
+            style={
+                "minHeight": "600px",
+                "backgroundColor": "#0f172a",
+                "padding": "0",
+            },
+        ),
     ]
 )
 

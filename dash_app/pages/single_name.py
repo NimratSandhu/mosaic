@@ -33,20 +33,37 @@ def create_single_name_layout() -> html.Div:
                 [
                     html.Div(
                         [
-                            html.Label("Ticker:", style={"marginRight": "10px"}),
+                            html.Label(
+                                "Ticker:",
+                                style={
+                                    "marginRight": "10px",
+                                    "color": "#cbd5e1",
+                                    "fontWeight": "500",
+                                    "fontSize": "14px",
+                                },
+                            ),
                             dcc.Dropdown(
                                 id="ticker-selector",
                                 options=[{"label": t, "value": t} for t in available_tickers],
                                 value=available_tickers[0] if available_tickers else None,
                                 clearable=False,
                                 style={"width": "150px"},
+                                className="dark-dropdown",
                             ),
                         ],
                         style={"display": "inline-block", "marginRight": "30px"},
                     ),
                     html.Div(
                         [
-                            html.Label("Date:", style={"marginRight": "10px"}),
+                            html.Label(
+                                "Date:",
+                                style={
+                                    "marginRight": "10px",
+                                    "color": "#cbd5e1",
+                                    "fontWeight": "500",
+                                    "fontSize": "14px",
+                                },
+                            ),
                             dcc.Dropdown(
                                 id="single-name-date-filter",
                                 options=[
@@ -56,25 +73,59 @@ def create_single_name_layout() -> html.Div:
                                 value=latest_date.isoformat() if latest_date else None,
                                 clearable=False,
                                 style={"width": "200px"},
+                                className="dark-dropdown",
                             ),
                         ],
                         style={"display": "inline-block"},
                     ),
                 ],
-                style={"marginBottom": "30px"},
+                style={
+                    "backgroundColor": "#1e293b",
+                    "border": "1px solid #334155",
+                    "borderRadius": "12px",
+                    "padding": "20px",
+                    "marginBottom": "24px",
+                    "display": "flex",
+                    "gap": "24px",
+                    "alignItems": "center",
+                    "flexWrap": "wrap",
+                },
             ),
             html.Div(
                 [
                     html.Div(
                         [
-                            html.H3("Price Chart with Features", style={"marginBottom": "15px"}),
+                            html.H3(
+                                "Price Chart with Features",
+                                style={
+                                    "marginBottom": "15px",
+                                    "color": "#f1f5f9",
+                                    "fontWeight": "600",
+                                    "fontSize": "20px",
+                                },
+                            ),
                             dcc.Graph(id="price-feature-chart"),
                         ],
-                        style={"marginBottom": "30px"},
+                        style={
+                            "marginBottom": "30px",
+                            "backgroundColor": "#1e293b",
+                            "border": "1px solid #334155",
+                            "borderRadius": "12px",
+                            "padding": "20px",
+                            "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.2)",
+                        },
                     ),
                     html.Div(
                         [
-                            html.H3("Signal Score Breakdown", style={"marginBottom": "15px"}),
+                            html.H3(
+                                "Signal Score Breakdown",
+                                style={
+                                    "marginBottom": "15px",
+                                    "color": "#f1f5f9",
+                                    "fontWeight": "600",
+                                    "fontSize": "20px",
+                                },
+                            ),
                             html.Div(id="signal-score-display", style={"marginBottom": "15px"}),
                             dag.AgGrid(
                                 id="feature-breakdown-table",
@@ -104,13 +155,25 @@ def create_single_name_layout() -> html.Div:
                                     "sortable": True,
                                 },
                                 style={"height": "300px", "width": "100%"},
+                                className="ag-theme-alpine-dark",
                             ),
                         ],
+                        style={
+                            "backgroundColor": "#1e293b",
+                            "border": "1px solid #334155",
+                            "borderRadius": "12px",
+                            "padding": "20px",
+                            "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.2)",
+                        },
                     ),
                 ],
             ),
         ],
-        style={"padding": "20px"},
+        style={
+            "padding": "32px",
+            "backgroundColor": "#0f172a",
+            "minHeight": "100vh",
+        },
     )
 
 
@@ -153,7 +216,7 @@ def update_single_name(ticker: str, selected_date: str) -> tuple:
     # Get features
     features_df = get_ticker_features(ticker, as_of_date=as_of_date)
     
-    # Create price chart with features
+    # Create price chart with features (dark theme)
     fig = go.Figure()
     
     if not price_df.empty:
@@ -164,7 +227,11 @@ def update_single_name(ticker: str, selected_date: str) -> tuple:
                 y=price_df["close"],
                 mode="lines",
                 name="Close Price",
-                line=dict(color="blue", width=2),
+                line=dict(color="#3b82f6", width=2.5),
+                hovertemplate="<b>%{fullData.name}</b><br>" +
+                              "Date: %{x}<br>" +
+                              "Price: $%{y:.2f}<br>" +
+                              "<extra></extra>",
             )
         )
         
@@ -188,8 +255,12 @@ def update_single_name(ticker: str, selected_date: str) -> tuple:
                         y=price_df["close"] * (1 + vol_pct),
                         mode="lines",
                         name=f"Vol Upper (+{vol_pct:.1%})",
-                        line=dict(color="gray", width=1, dash="dash"),
+                        line=dict(color="#64748b", width=1, dash="dash"),
                         showlegend=True,
+                        hovertemplate="<b>Vol Upper</b><br>" +
+                                      "Date: %{x}<br>" +
+                                      "Price: $%{y:.2f}<br>" +
+                                      "<extra></extra>",
                     )
                 )
                 fig.add_trace(
@@ -198,19 +269,47 @@ def update_single_name(ticker: str, selected_date: str) -> tuple:
                         y=price_df["close"] * (1 - vol_pct),
                         mode="lines",
                         name=f"Vol Lower (-{vol_pct:.1%})",
-                        line=dict(color="gray", width=1, dash="dash"),
+                        line=dict(color="#64748b", width=1, dash="dash"),
                         showlegend=True,
                         fill="tonexty",
-                        fillcolor="rgba(128,128,128,0.1)",
+                        fillcolor="rgba(100, 116, 139, 0.15)",
+                        hovertemplate="<b>Vol Lower</b><br>" +
+                                      "Date: %{x}<br>" +
+                                      "Price: $%{y:.2f}<br>" +
+                                      "<extra></extra>",
                     )
                 )
         
         fig.update_layout(
-            title=f"{ticker} Price Chart with Feature Indicators",
-            xaxis_title="Date",
-            yaxis_title="Price ($)",
+            title=dict(
+                text=f"{ticker} Price Chart with Feature Indicators",
+                font=dict(color="#f1f5f9", size=20, family="Inter, sans-serif"),
+            ),
+            xaxis=dict(
+                title="Date",
+                #titlefont=dict(color="#cbd5e1", size=14),
+                tickfont=dict(color="#94a3b8", size=12),
+                gridcolor="#334155",
+                linecolor="#475569",
+            ),
+            yaxis=dict(
+                title="Price ($)",
+                #titlefont=dict(color="#cbd5e1", size=14),
+                tickfont=dict(color="#94a3b8", size=12),
+                gridcolor="#334155",
+                linecolor="#475569",
+            ),
             hovermode="x unified",
             height=500,
+            paper_bgcolor="#1e293b",
+            plot_bgcolor="#1e293b",
+            font=dict(color="#e2e8f0", family="Inter, sans-serif"),
+            legend=dict(
+                bgcolor="#0f172a",
+                bordercolor="#334155",
+                borderwidth=1,
+                font=dict(color="#e2e8f0", size=12),
+            ),
         )
     else:
         fig.add_annotation(
@@ -220,26 +319,55 @@ def update_single_name(ticker: str, selected_date: str) -> tuple:
             x=0.5,
             y=0.5,
             showarrow=False,
+            font=dict(color="#e2e8f0", size=16),
+        )
+        fig.update_layout(
+            paper_bgcolor="#1e293b",
+            plot_bgcolor="#1e293b",
+            font=dict(color="#e2e8f0", family="Inter, sans-serif"),
         )
     
-    # Signal score display
+    # Signal score display with modern styling
     if ticker_signal is not None:
-        signal_color = "green" if ticker_signal > 0 else "red"
+        signal_color = "#10b981" if ticker_signal > 0 else "#ef4444"
+        signal_class = "positive" if ticker_signal > 0 else "negative"
         signal_display = html.Div(
             [
-                html.Span("Signal Score: ", style={"fontSize": "16px"}),
                 html.Span(
-                    f"{ticker_signal:.2f}",
+                    "Signal Score: ",
                     style={
-                        "fontSize": "20px",
-                        "fontWeight": "bold",
-                        "color": signal_color,
+                        "fontSize": "16px",
+                        "color": "#cbd5e1",
+                        "fontWeight": "500",
                     },
                 ),
-            ]
+                html.Span(
+                    f"{ticker_signal:.2f}",
+                    className=f"signal-score {signal_class}",
+                    style={
+                        "fontSize": "24px",
+                        "fontWeight": "700",
+                        "color": signal_color,
+                        "padding": "12px 24px",
+                        "borderRadius": "8px",
+                        "display": "inline-block",
+                        "background": "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                        "border": f"1px solid {signal_color}",
+                        "marginLeft": "12px",
+                    },
+                ),
+            ],
+            style={"marginBottom": "20px"},
         )
     else:
-        signal_display = html.Div("Signal score not available", style={"color": "gray"})
+        signal_display = html.Div(
+            "Signal score not available",
+            style={
+                "color": "#94a3b8",
+                "fontSize": "14px",
+                "fontStyle": "italic",
+            },
+        )
     
     # Feature breakdown table
     feature_rows = []
