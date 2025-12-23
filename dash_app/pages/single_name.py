@@ -26,6 +26,38 @@ def create_single_name_layout() -> html.Div:
     signals_df = get_latest_signal_scores()
     available_tickers = sorted(signals_df["ticker"].unique().tolist()) if not signals_df.empty else []
     
+    # Show message if no data available
+    if not available_dates or not available_tickers:
+        return html.Div(
+            [
+                html.H2("Single Name Deep Dive", className="page-header"),
+                html.Div(
+                    [
+                        html.P(
+                            "No data available yet. Please run the data pipeline:",
+                            style={"color": "#cbd5e1", "fontSize": "16px", "marginBottom": "20px"},
+                        ),
+                        html.Pre(
+                            "make ingest-daily\nmake curate\nmake build-features",
+                            style={
+                                "backgroundColor": "#1e293b",
+                                "padding": "20px",
+                                "borderRadius": "8px",
+                                "color": "#10b981",
+                                "fontFamily": "monospace",
+                                "border": "1px solid #334155",
+                            },
+                        ),
+                    ],
+                    style={
+                        "padding": "32px",
+                        "backgroundColor": "#0f172a",
+                        "minHeight": "100vh",
+                    },
+                ),
+            ]
+        )
+    
     return html.Div(
         [
             html.H2("Single Name Deep Dive", className="page-header"),

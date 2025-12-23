@@ -25,6 +25,38 @@ def create_market_overview_layout() -> html.Div:
     available_sectors = get_available_sectors()
     latest_date = available_dates[0] if available_dates else None
     
+    # Show message if no data available
+    if not available_dates:
+        return html.Div(
+            [
+                html.H2("Market Overview", className="page-header"),
+                html.Div(
+                    [
+                        html.P(
+                            "No data available yet. Please run the data pipeline:",
+                            style={"color": "#cbd5e1", "fontSize": "16px", "marginBottom": "20px"},
+                        ),
+                        html.Pre(
+                            "make ingest-daily\nmake curate\nmake build-features",
+                            style={
+                                "backgroundColor": "#1e293b",
+                                "padding": "20px",
+                                "borderRadius": "8px",
+                                "color": "#10b981",
+                                "fontFamily": "monospace",
+                                "border": "1px solid #334155",
+                            },
+                        ),
+                    ],
+                    style={
+                        "padding": "32px",
+                        "backgroundColor": "#0f172a",
+                        "minHeight": "100vh",
+                    },
+                ),
+            ]
+        )
+    
     return html.Div(
         [
             html.H2("Market Overview", className="page-header"),

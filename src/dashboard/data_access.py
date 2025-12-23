@@ -10,6 +10,20 @@ import pandas as pd
 
 from config.settings import get_settings
 from db.duckdb_client import DuckDBClient, get_db_path
+from logging_utils.setup import logger
+
+
+def _table_exists(db: DuckDBClient, schema: str, table: str) -> bool:
+    """Check if a table exists in the database."""
+    try:
+        # DuckDB uses a different approach - try to query the table
+        # If it doesn't exist, it will raise an exception
+        db.query(f"SELECT 1 FROM {schema}.{table} LIMIT 1")
+        return True
+    except Exception as e:
+        # Table doesn't exist or other error
+        logger.debug(f"Table {schema}.{table} does not exist: {e}")
+        return False
 
 
 def load_universe_with_sectors() -> pd.DataFrame:
@@ -36,24 +50,37 @@ def get_latest_signal_scores(
     db_file = get_db_path()
     
     with DuckDBClient(db_file) as db:
-        if as_of_date:
-            date_filter = f"WHERE date = '{as_of_date}'"
-        else:
-            date_filter = "WHERE date = (SELECT MAX(date) FROM marts.signal_scores)"
+        # Check if table exists
+        if not _table_exists(db, "marts", "signal_scores"):
+            logger.warning("Table marts.signal_scores does not exist yet. No data available.")
+            return pd.DataFrame(columns=["ticker", "date", "signal_score", "company", "sector"])
         
-        query = f"""
-        SELECT ticker, date, signal_score
-        FROM marts.signal_scores
-        {date_filter}
-        ORDER BY signal_score DESC
-        """
-        
-        results = db.query(query)
-        
-        if not results:
-            return pd.DataFrame(columns=["ticker", "date", "signal_score"])
-        
-        df = pd.DataFrame(results, columns=["ticker", "date", "signal_score"])
+        try:
+            if as_of_date:
+                date_filter = f"WHERE date = '{as_of_date}'"
+            else:
+                # Get latest date safely
+                max_date_result = db.query("SELECT MAX(date) FROM marts.signal_scores")
+                if not max_date_result or not max_date_result[0][0]:
+                    return pd.DataFrame(columns=["ticker", "date", "signal_score", "company", "sector"])
+                date_filter = f"WHERE date = '{max_date_result[0][0]}'"
+            
+            query = f"""
+            SELECT ticker, date, signal_score
+            FROM marts.signal_scores
+            {date_filter}
+            ORDER BY signal_score DESC
+            """
+            
+            results = db.query(query)
+            
+            if not results:
+                return pd.DataFrame(columns=["ticker", "date", "signal_score", "company", "sector"])
+            
+            df = pd.DataFrame(results, columns=["ticker", "date", "signal_score"])
+        except Exception as e:
+            logger.error(f"Error querying signal scores: {e}")
+            return pd.DataFrame(columns=["ticker", "date", "signal_score", "company", "sector"])
     
     # Join with universe to get sector information
     universe_df = load_universe_with_sectors()
@@ -83,32 +110,51 @@ def get_latest_positions(
     db_file = get_db_path()
     
     with DuckDBClient(db_file) as db:
-        if as_of_date:
-            date_filter = f"AND date = '{as_of_date}'"
-        else:
-            date_filter = "AND date = (SELECT MAX(date) FROM marts.positions)"
-        
-        type_filter = ""
-        if position_type:
-            type_filter = f"AND position_type = '{position_type}'"
-        
-        query = f"""
-        SELECT ticker, date, position_type, signal_score, rank
-        FROM marts.positions
-        WHERE 1=1 {date_filter} {type_filter}
-        ORDER BY position_type, rank
-        """
-        
-        results = db.query(query)
-        
-        if not results:
+        # Check if table exists
+        if not _table_exists(db, "marts", "positions"):
+            logger.warning("Table marts.positions does not exist yet. No data available.")
             return pd.DataFrame(
-                columns=["ticker", "date", "position_type", "signal_score", "rank"]
+                columns=["ticker", "date", "position_type", "signal_score", "rank", "company", "sector"]
             )
         
-        df = pd.DataFrame(
-            results, columns=["ticker", "date", "position_type", "signal_score", "rank"]
-        )
+        try:
+            if as_of_date:
+                date_filter = f"AND date = '{as_of_date}'"
+            else:
+                # Get latest date safely
+                max_date_result = db.query("SELECT MAX(date) FROM marts.positions")
+                if not max_date_result or not max_date_result[0][0]:
+                    return pd.DataFrame(
+                        columns=["ticker", "date", "position_type", "signal_score", "rank", "company", "sector"]
+                    )
+                date_filter = f"AND date = '{max_date_result[0][0]}'"
+            
+            type_filter = ""
+            if position_type:
+                type_filter = f"AND position_type = '{position_type}'"
+            
+            query = f"""
+            SELECT ticker, date, position_type, signal_score, rank
+            FROM marts.positions
+            WHERE 1=1 {date_filter} {type_filter}
+            ORDER BY position_type, rank
+            """
+            
+            results = db.query(query)
+            
+            if not results:
+                return pd.DataFrame(
+                    columns=["ticker", "date", "position_type", "signal_score", "rank", "company", "sector"]
+                )
+            
+            df = pd.DataFrame(
+                results, columns=["ticker", "date", "position_type", "signal_score", "rank"]
+            )
+        except Exception as e:
+            logger.error(f"Error querying positions: {e}")
+            return pd.DataFrame(
+                columns=["ticker", "date", "position_type", "signal_score", "rank", "company", "sector"]
+            )
     
     # Join with universe to get company and sector
     universe_df = load_universe_with_sectors()
@@ -134,26 +180,39 @@ def get_ticker_price_history(
     db_file = get_db_path()
     
     with DuckDBClient(db_file) as db:
-        query = f"""
-        SELECT date, open, high, low, close, volume
-        FROM curated.daily_prices
-        WHERE ticker = '{ticker}'
-        ORDER BY date DESC
-        LIMIT {days}
-        """
-        
-        results = db.query(query)
-        
-        if not results:
+        # Check if table exists
+        if not _table_exists(db, "curated", "daily_prices"):
+            logger.warning("Table curated.daily_prices does not exist yet. No data available.")
             return pd.DataFrame(
                 columns=["date", "open", "high", "low", "close", "volume"]
             )
         
-        df = pd.DataFrame(
-            results, columns=["date", "open", "high", "low", "close", "volume"]
-        )
-        # Reverse to get chronological order
-        df = df.sort_values("date").reset_index(drop=True)
+        try:
+            query = f"""
+            SELECT date, open, high, low, close, volume
+            FROM curated.daily_prices
+            WHERE ticker = '{ticker}'
+            ORDER BY date DESC
+            LIMIT {days}
+            """
+            
+            results = db.query(query)
+            
+            if not results:
+                return pd.DataFrame(
+                    columns=["date", "open", "high", "low", "close", "volume"]
+                )
+            
+            df = pd.DataFrame(
+                results, columns=["date", "open", "high", "low", "close", "volume"]
+            )
+            # Reverse to get chronological order
+            df = df.sort_values("date").reset_index(drop=True)
+        except Exception as e:
+            logger.error(f"Error querying price history: {e}")
+            return pd.DataFrame(
+                columns=["date", "open", "high", "low", "close", "volume"]
+            )
     
     return df
 
@@ -177,31 +236,49 @@ def get_ticker_features(
     """
     from features.price_features import calculate_price_features
     
+    db_file = get_db_path()
+    
+    # Check if tables exist
+    with DuckDBClient(db_file) as db:
+        if not _table_exists(db, "marts", "signal_scores"):
+            logger.warning("Table marts.signal_scores does not exist yet. Cannot calculate features.")
+            return pd.DataFrame()
+        
+        if not _table_exists(db, "curated", "daily_prices"):
+            logger.warning("Table curated.daily_prices does not exist yet. Cannot calculate features.")
+            return pd.DataFrame()
+    
     if as_of_date is None:
         # Get latest date from signal scores
-        db_file = get_db_path()
         with DuckDBClient(db_file) as db:
-            result = db.query(
-                f"SELECT MAX(date) FROM marts.signal_scores WHERE ticker = '{ticker}'"
-            )
-            if result and result[0][0]:
-                as_of_date = pd.Timestamp(result[0][0]).date()
-            else:
-                # Try to get latest date overall
-                result = db.query("SELECT MAX(date) FROM marts.signal_scores")
+            try:
+                result = db.query(
+                    f"SELECT MAX(date) FROM marts.signal_scores WHERE ticker = '{ticker}'"
+                )
                 if result and result[0][0]:
                     as_of_date = pd.Timestamp(result[0][0]).date()
                 else:
-                    return pd.DataFrame()
+                    # Try to get latest date overall
+                    result = db.query("SELECT MAX(date) FROM marts.signal_scores")
+                    if result and result[0][0]:
+                        as_of_date = pd.Timestamp(result[0][0]).date()
+                    else:
+                        return pd.DataFrame()
+            except Exception as e:
+                logger.error(f"Error getting latest date: {e}")
+                return pd.DataFrame()
     
     # Calculate features for this ticker
-    features_df = calculate_price_features(as_of_date)
-    if features_df.empty:
+    try:
+        features_df = calculate_price_features(as_of_date)
+        if features_df.empty:
+            return pd.DataFrame()
+        
+        ticker_features = features_df[features_df["ticker"] == ticker].copy()
+        return ticker_features
+    except Exception as e:
+        logger.error(f"Error calculating features: {e}")
         return pd.DataFrame()
-    
-    ticker_features = features_df[features_df["ticker"] == ticker].copy()
-    
-    return ticker_features
 
 
 def get_sector_exposure(
@@ -250,14 +327,23 @@ def get_available_dates() -> list[date]:
     db_file = get_db_path()
     
     with DuckDBClient(db_file) as db:
-        results = db.query(
-            "SELECT DISTINCT date FROM marts.signal_scores ORDER BY date DESC"
-        )
-        
-        if not results:
+        # Check if table exists
+        if not _table_exists(db, "marts", "signal_scores"):
+            logger.debug("Table marts.signal_scores does not exist yet. Returning empty date list.")
             return []
         
-        return [pd.Timestamp(row[0]).date() for row in results]
+        try:
+            results = db.query(
+                "SELECT DISTINCT date FROM marts.signal_scores ORDER BY date DESC"
+            )
+            
+            if not results:
+                return []
+            
+            return [pd.Timestamp(row[0]).date() for row in results]
+        except Exception as e:
+            logger.error(f"Error getting available dates: {e}")
+            return []
 
 
 def get_available_sectors() -> list[str]:
