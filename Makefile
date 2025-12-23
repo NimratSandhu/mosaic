@@ -6,7 +6,7 @@ DOCKER_COMPOSE ?= docker-compose
 
 ENV_FILE ?= .env
 
-.PHONY: install lock ingest-daily curate validate build-features run-dash fmt lint build docker-build docker-up docker-down docker-ingest docker-dash
+.PHONY: install lock ingest-daily curate validate build-features run-dash fmt lint build docker-build docker-up docker-down docker-ingest docker-dash sync-to-gcs sync-from-gcs deploy-cloud-run
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -55,6 +55,22 @@ docker-ingest:
 
 docker-dash:
 	$(DOCKER_COMPOSE) up mosaic
+
+# GCS sync commands
+sync-to-gcs:
+	PYTHONPATH=src $(PYTHON) scripts/sync_to_gcs.py
+
+sync-from-gcs:
+	PYTHONPATH=src $(PYTHON) scripts/sync_from_gcs.py
+
+# Cloud Run deployment
+deploy-cloud-run:
+	@if [ -z "$(GOOGLE_CLOUD_PROJECT)" ] && [ -z "$(1)" ]; then \
+		echo "Error: Set GOOGLE_CLOUD_PROJECT or provide project ID as argument"; \
+		echo "Usage: make deploy-cloud-run PROJECT_ID=my-project BUCKET=my-bucket"; \
+		exit 1; \
+	fi
+	./cloud-run-deploy.sh $(or $(GOOGLE_CLOUD_PROJECT),$(1)) $(or $(REGION),us-central1) $(or $(GCS_BUCKET_NAME),$(2))
 
 # Combined commands for easy deployment
 deploy: docker-build docker-up

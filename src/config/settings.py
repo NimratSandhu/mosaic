@@ -40,6 +40,11 @@ class Settings:
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
+    # GCS configuration
+    gcs_bucket_name: Optional[str] = os.getenv("GCS_BUCKET_NAME")
+    gcs_marts_prefix: str = os.getenv("GCS_MARTS_PREFIX", "marts/")
+    gcs_enabled: bool = os.getenv("GCS_ENABLED", "false").lower() == "true"
+
 
 _settings: Optional[Settings] = None
 

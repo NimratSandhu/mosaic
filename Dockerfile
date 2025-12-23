@@ -64,4 +64,4 @@ EXPOSE 8050
 
 # Health check for dashboard
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8050/_dash-health || exit 1
+    CMD curl -f http://localhost:8050/api/health || exit 1

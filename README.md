@@ -187,6 +187,12 @@ make backfill         # Backfill historical data
 ```bash
 make build            # Build Docker image
 make deploy           # Build and start dashboard
+```
+
+### GCS Sync (for Cloud Run deployment)
+```bash
+make sync-to-gcs      # Upload data to GCS after running pipeline
+make sync-from-gcs    # Download data from GCS (for testing)
 make docker-up        # Start services
 make docker-down      # Stop services
 make docker-ingest    # Run ingestion in container

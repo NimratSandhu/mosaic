@@ -24,69 +24,51 @@ app = dash.Dash(
 # Add API endpoints for triggering data pipeline
 @app.server.route("/api/health")
 def health_check():
-    """Health check endpoint for Render.com."""
+    """Health check endpoint for Cloud Run and other platforms."""
     return jsonify({"status": "ok"}), 200
 
 
-@app.server.route("/api/run-pipeline", methods=["POST"])
-def run_pipeline():
+@app.server.route("/api/sync-data", methods=["POST"])
+def sync_data():
     """
-    Trigger the data pipeline (ingestion, curation, features).
+    Manually trigger data sync from GCS.
     
-    Requires a secret token in the request header or query param for security.
+    Useful for refreshing data without restarting the container.
     """
-    # Simple security: check for a token (set via environment variable)
     import os
-    expected_token = os.getenv("PIPELINE_TOKEN", "")
-    
-    # Get token from header or query param
-    token = request.headers.get("X-Pipeline-Token") or request.args.get("token")
-    
-    if expected_token and token != expected_token:
-        return jsonify({"error": "Unauthorized"}), 401
+    import subprocess
+    import sys
+    from pathlib import Path
     
     try:
-        run_date = request.args.get("date") or date.today().isoformat()
+        # Run sync script
+        script_path = Path(__file__).parent.parent / "scripts" / "sync_from_gcs.py"
+        if not script_path.exists():
+            return jsonify({"error": "Sync script not found"}), 500
         
-        # Run pipeline in background (non-blocking)
-        # Note: In production, you might want to use a proper task queue
-        import threading
-        import sys
-        from pathlib import Path
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+            env={**os.environ, "PYTHONPATH": "/app/src:/app"},
+        )
         
-        def run_pipeline_task():
-            # Add src to path
-            src_path = Path(__file__).parent.parent / "src"
-            if str(src_path) not in sys.path:
-                sys.path.insert(0, str(src_path))
+        if result.returncode == 0:
+            return jsonify({
+                "status": "success",
+                "message": "Data synced from GCS",
+                "output": result.stdout,
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Sync failed",
+                "error": result.stderr,
+            }), 500
             
-            try:
-                # Import and run flows directly
-                from flows.ingest_prices import ingest_prices
-                from flows.ingest_fundamentals import ingest_fundamentals
-                from flows.curate_data import curate_data
-                from flows.build_features import build_features
-                
-                # Run the pipeline
-                ingest_prices(run_date=run_date)
-                ingest_fundamentals(run_date=run_date)
-                curate_data(run_date=run_date)
-                build_features(run_date=run_date)
-            except Exception as e:
-                # Log error but don't crash the server
-                import logging
-                logging.error(f"Pipeline error: {e}", exc_info=True)
-        
-        # Start pipeline in background thread
-        thread = threading.Thread(target=run_pipeline_task, daemon=True)
-        thread.start()
-        
-        return jsonify({
-            "status": "started",
-            "message": f"Pipeline started for date {run_date}",
-            "note": "This may take several minutes. Check logs for progress."
-        }), 202
-        
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Sync timed out"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -208,8 +190,40 @@ def display_page(pathname: str) -> html.Div:
 
 def main() -> None:
     """Run the Dash server."""
-    # Disable debug in production (set via environment variable)
     import os
+    import sys
+    from pathlib import Path
+    
+    # Sync data from GCS on startup if enabled
+    gcs_enabled = os.getenv("GCS_ENABLED", "false").lower() == "true"
+    if gcs_enabled:
+        try:
+            # Add src to path for imports
+            src_path = Path(__file__).parent.parent / "src"
+            if str(src_path) not in sys.path:
+                sys.path.insert(0, str(src_path))
+            
+            from utils.storage import sync_marts_from_gcs
+            from config.settings import get_settings
+            
+            settings = get_settings()
+            if settings.gcs_bucket_name:
+                print("Syncing data from GCS on startup...")
+                try:
+                    sync_marts_from_gcs(
+                        bucket_name=settings.gcs_bucket_name,
+                        local_marts_dir=settings.marts_dir,
+                        gcs_prefix=settings.gcs_marts_prefix,
+                    )
+                    print("✅ Data sync complete")
+                except Exception as e:
+                    print(f"⚠️  GCS sync failed (continuing anyway): {e}")
+                    print("Dashboard will start with existing local data or empty state.")
+        except Exception as e:
+            print(f"⚠️  Could not sync from GCS: {e}")
+            print("Dashboard will start with existing local data or empty state.")
+    
+    # Disable debug in production (set via environment variable)
     debug_mode = os.getenv("DASH_DEBUG", "false").lower() == "true"
     app.run_server(host="0.0.0.0", port=8050, debug=debug_mode)
 

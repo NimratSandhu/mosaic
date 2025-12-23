@@ -82,6 +82,180 @@ If you have `render.yaml` in your repo:
 - Render will auto-detect and use it
 - Environment variables still need to be set in dashboard
 
+## Google Cloud Run Deployment
+
+### Architecture
+
+The dashboard runs on Cloud Run (serverless) and reads data from a GCS bucket. The pipeline runs locally on your machine and syncs results to GCS.
+
+```
+Local Machine (Pipeline) → GCS Bucket → Cloud Run (Dashboard)
+```
+
+### Prerequisites
+
+1. **Google Cloud Account** with billing enabled (free tier available)
+2. **gcloud CLI** installed and authenticated:
+   ```bash
+   gcloud auth login
+   gcloud auth application-default login
+   ```
+3. **Python dependencies** installed locally for pipeline execution
+
+### Step 1: Create GCS Bucket
+
+```bash
+# Set your project
+export GOOGLE_CLOUD_PROJECT=your-project-id
+gcloud config set project $GOOGLE_CLOUD_PROJECT
+
+# Create bucket
+gsutil mb gs://mosaic-signal-data
+
+# Optional: Set lifecycle policy to reduce costs
+gsutil lifecycle set lifecycle.json gs://mosaic-signal-data
+```
+
+Create `lifecycle.json` (optional):
+```json
+{
+  "lifecycle": {
+    "rule": [
+      {
+        "action": {"type": "Delete"},
+        "condition": {"age": 365}
+      }
+    ]
+  }
+}
+```
+
+### Step 2: Set Up Service Account
+
+```bash
+# Create service account for Cloud Run
+gcloud iam service-accounts create mosaic-dashboard \
+    --display-name="Mosaic Signal Platform Dashboard"
+
+# Grant GCS access
+gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
+    --member="serviceAccount:mosaic-dashboard@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com" \
+    --role="roles/storage.objectViewer"
+
+# For local pipeline, use your user account or create a separate service account
+# For local: gcloud auth application-default login
+```
+
+### Step 3: Configure Local Environment
+
+Create or update `.env`:
+```bash
+GCS_BUCKET_NAME=mosaic-signal-data
+GCS_ENABLED=true
+GCS_MARTS_PREFIX=marts/
+SEC_EDGAR_USER_AGENT="YourName your.email@example.com"
+SEC_EDGAR_USER_EMAIL=your.email@example.com
+```
+
+### Step 4: Run Pipeline and Sync
+
+```bash
+# Run the full pipeline locally
+make ingest-daily
+make curate
+make build-features
+
+# Sync results to GCS
+export GCS_BUCKET_NAME=mosaic-signal-data
+make sync-to-gcs
+```
+
+### Step 5: Deploy to Cloud Run
+
+**Option A: Using Makefile**
+```bash
+make deploy-cloud-run PROJECT_ID=your-project-id BUCKET=mosaic-signal-data
+```
+
+**Option B: Using gcloud directly**
+```bash
+# Build and push image
+gcloud builds submit --config=cloudbuild.yaml
+
+# Or deploy manually
+gcloud run deploy mosaic-signal-platform \
+    --source . \
+    --region us-central1 \
+    --platform managed \
+    --allow-unauthenticated \
+    --memory 512Mi \
+    --cpu 1 \
+    --max-instances 10 \
+    --min-instances 0 \
+    --timeout 300 \
+    --port 8050 \
+    --set-env-vars "GCS_BUCKET_NAME=mosaic-signal-data,GCS_ENABLED=true,DUCKDB_THREADS=2,PYTHONPATH=/app/src:/app,PREFECT_HOME=/opt/prefect" \
+    --set-env-vars "SEC_EDGAR_USER_AGENT=YourName your.email@example.com" \
+    --set-env-vars "SEC_EDGAR_USER_EMAIL=your.email@example.com" \
+    --service-account mosaic-dashboard@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
+```
+
+**Option C: Using Cloud Build (automated)**
+```bash
+gcloud builds submit --config=cloudbuild.yaml
+```
+
+### Step 6: Get Service URL
+
+```bash
+gcloud run services describe mosaic-signal-platform \
+    --region us-central1 \
+    --format="value(status.url)"
+```
+
+### Updating Data
+
+1. **Run pipeline locally**:
+   ```bash
+   make ingest-daily
+   make curate
+   make build-features
+   ```
+
+2. **Sync to GCS**:
+   ```bash
+   make sync-to-gcs
+   ```
+
+3. **Trigger Cloud Run sync** (optional, or wait for next request):
+   ```bash
+   curl -X POST "https://your-service-url/api/sync-data"
+   ```
+
+### Cost Estimation (Free Tier)
+
+- **Cloud Run**: 2 million requests/month, 360K GB-seconds free
+- **GCS**: 5GB storage, 5K Class A operations, 50K Class B operations free
+- **Cloud Build**: 120 build-minutes/day free
+
+For typical usage (<100 requests/day, <1GB data), this should be **completely free**.
+
+### Troubleshooting
+
+**Dashboard shows no data:**
+- Check GCS bucket has data: `gsutil ls gs://your-bucket/marts/`
+- Check Cloud Run logs: `gcloud run services logs read mosaic-signal-platform --region us-central1`
+- Verify environment variables are set correctly
+
+**Sync fails:**
+- Verify authentication: `gcloud auth application-default login`
+- Check bucket permissions: `gsutil iam get gs://your-bucket`
+- Verify bucket name is correct
+
+**Memory issues:**
+- Increase Cloud Run memory: `--memory 1Gi`
+- Reduce DuckDB threads: `DUCKDB_THREADS=1`
+
 ## Fly.io Deployment
 
 ### Steps
