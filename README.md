@@ -1,215 +1,216 @@
 # Unified Signal Monitoring and Portfolio Context Platform
 
-Milestone 1 delivers the ingestion foundation: project skeleton, pip-tools environment, Prefect flows for prices (Stooq) and fundamentals (SEC), and Docker/Make targets.
+> A production-ready financial data platform that helps Portfolio Managers monitor trading signals, analyze market exposures, and make data-driven investment decisions. Built with Python, DuckDB, and Dash.
 
-Milestone 2 adds data curation: ETL transforms raw data into curated Parquet tables, Great Expectations validation, and DuckDB integration for analytical queries.
+## 🎯 What is This?
 
-Milestone 3 implements the feature engine: calculates price features (20d realized vol, 60d momentum, 5d mean reversion Z-score), fundamental features (YoY revenue growth proxies), signal scoring (Z-score normalization), and position generation (top N longs, bottom N shorts).
+This platform is a **complete end-to-end system** for quantitative finance that:
 
-Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short candidate tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
+- **Ingests** daily price data and quarterly fundamentals from free public sources (Stooq, SEC EDGAR)
+- **Processes** raw data through a curated data lake with quality validation
+- **Calculates** interpretable financial features (volatility, momentum, mean reversion)
+- **Generates** normalized signal scores (Z-scores) across a universe of stocks
+- **Visualizes** signals, positions, and exposures in an interactive dashboard
 
-Milestone 5 provides deployment hardening: optimized Dockerfile with multi-stage build, docker-compose.yml for single-command deployment, memory-efficient configuration (512MB limit for free-tier hosting), and comprehensive Makefile commands for both local and Docker workflows.
+Think of it as a **Bloomberg Terminal lite** - but open-source, free, and fully transparent.
 
-Milestone 4 delivers the dashboard: two-page Dash application with Market Overview (sector filters, top long/short tables, sector exposure charts) and Single Name Deep Dive (price charts with feature indicators, signal breakdown tables).
+## 🚀 Quick Start
 
-## Layout
-- `src/` — Python packages (`config`, `data_sources`, `flows`, `curation`, `db`, `features`, `dashboard`, `logging_utils`, `utils`)
-- `data/raw/`, `data/curated/`, `data/marts/` — data lake layers (raw is gitignored)
-- `config/universe/sp100.csv` — default universe list
-- `great_expectations/` — Great Expectations validation suites
-- `dash_app/` — Dash application with Market Overview and Single Name Deep Dive pages
-- `src/dashboard/` — Dashboard data access layer
-- `Dockerfile` — Multi-stage Docker build for production deployment
-- `docker-compose.yml` — Single-command deployment configuration
-- `render.yaml` — Render.com deployment configuration
-- `DEPLOYMENT.md` — Comprehensive deployment guide
+### Prerequisites
+- Python 3.11+ (3.11 recommended for prebuilt wheels)
+- Docker (optional, for containerized deployment)
 
-## Setup (Local Development)
-
-**Prerequisites:** Python 3.11+ (3.11 recommended for prebuilt pyarrow wheels)
+### Local Setup (5 minutes)
 
 ```bash
-# 1. Create virtual environment
+# 1. Clone the repository
+git clone <your-repo-url>
+cd mosaic
+
+# 2. Create virtual environment
 python3.11 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# 2. Install dependencies
+# 3. Install dependencies
 make install
-# Or manually:
-# python -m pip install --upgrade pip pip-tools
-# pip-sync requirements.txt
 
-# 3. Configure environment
+# 4. Configure environment
 cp .env.example .env
 # Edit .env and set:
-# - SEC_EDGAR_USER_AGENT="YourName your.email@example.com" (REQUIRED)
-# - ALPHAVANTAGE_API_KEY (optional, Stooq is default)
+# SEC_EDGAR_USER_AGENT="YourName your.email@example.com" (REQUIRED)
+# SEC_EDGAR_USER_EMAIL="your.email@example.com" (REQUIRED)
+
+# 5. Run the pipeline
+make ingest-daily    # Fetch today's data
+make curate          # Process and validate
+make build-features  # Calculate signals
+make run-dash        # Launch dashboard at http://localhost:8050
 ```
 
-## Running Flows (Local, No Docker Required)
-
-You can run flows locally without Docker. Two options:
-
-### Option 1: Using Make (Recommended)
-```bash
-# Run both price and fundamentals ingestion for a specific date
-RUN_DATE=2024-12-01 make ingest-daily
-
-# Run for today (default)
-make ingest-daily
-
-# Curate raw data into curated layer (includes validation and DuckDB loading)
-RUN_DATE=2024-12-01 make curate
-
-# Run curation for today (default)
-make curate
-
-# Build features, signals, and positions
-RUN_DATE=2024-12-01 make build-features
-
-# Run feature engine for today (default)
-make build-features
-```
-
-### Option 2: Direct Python Execution
-```bash
-# Make sure venv is activated and PYTHONPATH includes src/
-source venv/bin/activate
-
-# Run price ingestion
-PYTHONPATH=src python -m flows.ingest_prices --run-date 2024-12-01
-# Or use today's date (default)
-PYTHONPATH=src python -m flows.ingest_prices
-
-# Run fundamentals ingestion
-PYTHONPATH=src python -m flows.ingest_fundamentals --run-date 2024-12-01
-
-# Run curation flow (curates prices and fundamentals, validates, loads to DuckDB)
-PYTHONPATH=src python -m flows.curate_data --run-date 2024-12-01
-
-# Run feature engine flow (calculates features, scores signals, generates positions)
-PYTHONPATH=src python -m flows.build_features --run-date 2024-12-01
-
-# Run dashboard
-PYTHONPATH=src:./ python -m dash_app.app
-# Or use make:
-make run-dash
-```
-
-## Running with Docker (Milestone 5)
-
-Docker deployment is optimized for production and free-tier hosting (e.g., Render):
-
-### Quick Start
+### Docker Deployment (One Command)
 
 ```bash
-# Build the Docker image
-make build
-# Or: docker build -t unified-signal-platform:latest .
-
-# Deploy everything (dashboard + ingestion)
-make deploy
-# Or: docker-compose up -d
-
-# Run ingestion only
-make docker-ingest
-# Or: RUN_DATE=2024-12-01 docker-compose run --rm ingest
-
-# Run dashboard only
-make docker-dash
-# Or: docker-compose up mosaic
-
-# Stop services
-make docker-down
-# Or: docker-compose down
+make deploy  # Builds and starts everything
+# Dashboard available at http://localhost:8050
 ```
 
-### Docker Compose Services
+## 📊 What You Get
 
-The `docker-compose.yml` defines two services:
+### 1. **Data Pipeline**
+- **Raw Layer**: Untouched API responses (Stooq prices, SEC filings)
+- **Curated Layer**: Cleaned, standardized tables with schema validation
+- **Marts Layer**: Pre-computed features and signals ready for analysis
 
-1. **mosaic** (default): Runs the dashboard on port 8050
-   - Memory limit: 512MB (free-tier compatible)
-   - Auto-restart on failure
-   - Health checks enabled
+### 2. **Feature Engine**
+Calculates interpretable financial metrics:
+- **Price Features**:
+  - 20-day realized volatility
+  - 60-day momentum
+  - 5-day mean reversion Z-score
+- **Fundamental Features**:
+  - Year-over-year revenue growth proxies
 
-2. **ingest**: On-demand ingestion service
-   - Run with: `docker-compose run --rm ingest`
-   - Exits after completion
+### 3. **Signal Scoring**
+- Normalizes all features into Z-scores (standard deviations from mean)
+- Generates composite signal scores for ranking stocks
+- Creates long/short candidate lists based on signal strength
 
-### Manual Docker Commands
+### 4. **Interactive Dashboard**
+Two-page Dash application with dark theme:
 
+**Page 1: Market Overview**
+- Filter by date and sector
+- Top long/short candidate tables
+- Sector exposure charts
+
+**Page 2: Single Name Deep Dive**
+- Price charts with feature overlays
+- Detailed signal breakdown
+- Feature-by-feature explanation
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐
+│  Data Sources   │  Stooq (prices) | SEC EDGAR (fundamentals)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Raw Data Lake  │  Partitioned Parquet files
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Curation ETL   │  Schema standardization | Validation (Great Expectations)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Curated Tables  │  daily_prices | quarterly_fundamentals
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  DuckDB Marts   │  Analytical database for dashboard queries
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Feature Engine │  Volatility | Momentum | Mean Reversion
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Signal Scoring  │  Z-score normalization | Position generation
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Dashboard     │  Dash/Plotly visualization
+└─────────────────┘
+```
+
+## 📁 Project Structure
+
+```
+mosaic/
+├── src/                    # Python source code
+│   ├── config/            # Configuration settings
+│   ├── data_sources/      # API clients (Stooq, SEC)
+│   ├── flows/             # Prefect orchestration flows
+│   ├── curation/          # ETL and data quality
+│   ├── db/                 # DuckDB client and loaders
+│   ├── features/           # Feature calculation engine
+│   ├── dashboard/         # Dashboard data access layer
+│   └── logging_utils/      # Logging configuration
+├── dash_app/              # Dash application
+│   ├── pages/             # Dashboard pages
+│   └── assets/            # CSS and JavaScript
+├── data/                   # Data lake (gitignored)
+│   ├── raw/               # Raw API responses
+│   ├── curated/           # Cleaned tables
+│   └── marts/             # Feature tables and DuckDB
+├── config/                # Configuration files
+│   └── universe/          # Stock universe (S&P 100)
+├── scripts/               # Utility scripts
+├── Dockerfile             # Container definition
+├── docker-compose.yml     # Multi-service deployment
+├── render.yaml            # Render.com deployment config
+└── Makefile              # Common commands
+```
+
+## 🛠️ Key Technologies
+
+- **Python 3.11**: Core language
+- **Prefect**: Lightweight workflow orchestration
+- **DuckDB**: Analytical database (SQL on Parquet)
+- **Pandas**: Data processing and feature engineering
+- **Dash/Plotly**: Interactive web dashboard
+- **Great Expectations**: Data quality validation
+- **Docker**: Containerized deployment
+
+## 📝 Common Commands
+
+### Local Development
 ```bash
-# Build image
-docker build -t unified-signal-platform:latest .
-
-# Run dashboard
-docker run -d \
-  --name mosaic-dash \
-  -p 8050:8050 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config:ro \
-  --env-file .env \
-  unified-signal-platform:latest
-
-# Run ingestion
-docker run --rm \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config:ro \
-  --env-file .env \
-  unified-signal-platform:latest \
-  sh -c "python -m flows.ingest_prices --run-date 2024-12-01 && python -m flows.ingest_fundamentals --run-date 2024-12-01"
-
-# Interactive shell
-docker run --rm -it \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/config:/app/config:ro \
-  --env-file .env \
-  unified-signal-platform:latest /bin/bash
+make install          # Install dependencies
+make ingest-daily     # Fetch today's data (prices + fundamentals)
+make curate           # Process raw data → curated tables
+make build-features   # Calculate features and signals
+make run-dash         # Start dashboard (http://localhost:8050)
+make query-db         # Query DuckDB database
+make backfill         # Backfill historical data
 ```
 
-### Memory Optimization
-
-The Dockerfile is optimized for memory-constrained environments:
-- Multi-stage build reduces image size
-- DuckDB threads limited to 2 (`DUCKDB_THREADS=2`)
-- Memory limits set to 512MB (suitable for free-tier Render)
-- Health checks for container monitoring
-
-**Note:** Mount `data/` as a volume so ingested data persists outside the container.
-
-## Other Commands
-- `make install` — install pinned deps with pip-tools
-- `make lock` — regenerate `requirements.txt` from `requirements.in`
-- `make curate` — curate raw data (ETL, validate, load to DuckDB)
-- `make validate` — alias for `make curate` (runs validation as part of curation)
-- `make build-features` — build features, signals, and positions (Milestone 3)
-- `make query-db` — list tables in DuckDB database
-- `make run-dash` — start Dash server (Market Overview and Single Name Deep Dive pages)
-
-## Data Conventions
-
-### Raw Layer
-- Raw prices: `data/raw/prices_stooq/YYYY/MM/DD/{ticker}.parquet`
-- Raw fundamentals manifest: `data/raw/fundamentals_sec/YYYY/Qx/{ticker}.parquet` plus downloaded filings under the same partition
-
-### Curated Layer
-- Curated daily prices: `data/curated/daily_prices/YYYY/MM/DD/YYYY-MM-DD.parquet` (one file per day with all tickers)
-- Curated quarterly fundamentals: `data/curated/quarterly_fundamentals/YYYY/Qx/YYYY_Qx.parquet` (one file per quarter)
-
-### DuckDB Database
-- Database file: `data/marts/duckdb/mosaic.duckdb`
-- Tables: 
-  - `curated.daily_prices`, `curated.quarterly_fundamentals`
-  - `marts.signal_scores`, `marts.positions`
-
-### Marts Layer
-- Signal scores: `data/marts/signal_scores/YYYY-MM-DD.parquet` (normalized Z-scores per ticker)
-- Positions: `data/marts/positions/YYYY-MM-DD.parquet` (top N longs, bottom N shorts)
-
-## Docker
-```
-docker build -t unified-signal .
-docker run --rm unified-signal
+### Docker
+```bash
+make build            # Build Docker image
+make deploy           # Build and start dashboard
+make docker-up        # Start services
+make docker-down      # Stop services
+make docker-ingest    # Run ingestion in container
 ```
 
+## 🔧 Configuration
+
+Required environment variables (see `.env.example`):
+
+## 📚 Documentation
+
+- [DEPLOYMENT.md](DEPLOYMENT.md): Detailed deployment guides (Render, AWS, etc.)
+- Code is well-documented with type hints and docstrings
+- See inline comments for feature calculation logic
+
+## 🤝 Contributing
+
+Feel free to fork, extend, or use as a template for your own projects!
+
+## 🙏 Acknowledgments
+
+- **Stooq**: Free historical price data
+- **SEC EDGAR**: Public company filings
+- **DuckDB**: Fast analytical database
+- **Dash/Plotly**: Beautiful visualizations
+
+---
