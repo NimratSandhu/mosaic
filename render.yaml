@@ -21,7 +21,11 @@ services:
         sync: false  # Set in Render dashboard
       - key: SEC_EDGAR_COMPANY_NAME
         value: MosaicSignalPlatform
-    healthCheckPath: /_dash-health
+      - key: PIPELINE_TOKEN
+        sync: false  # Set in Render dashboard (optional, for security)
+      - key: DASH_DEBUG
+        value: "false"
+    healthCheckPath: /api/health
     disk:
       name: mosaic-data
       mountPath: /app/data
