@@ -45,21 +45,47 @@ def upload_to_gcs(
     bucket = client.bucket(bucket_name)
     
     if local_path.is_file():
-        # Upload single file
+        # Upload single file (incremental: skip if remote is newer)
         blob = bucket.blob(gcs_path)
+        local_mtime = local_path.stat().st_mtime
+        
+        # Check if blob exists and compare modification times
+        if blob.exists():
+            remote_mtime = blob.updated.timestamp() if blob.updated else 0
+            if local_mtime <= remote_mtime:
+                logger.debug(f"Skipping {local_path} (remote is up to date)")
+                return
+        
         blob.upload_from_filename(str(local_path))
         logger.info(f"Uploaded {local_path} to gs://{bucket_name}/{gcs_path}")
     elif local_path.is_dir():
-        # Upload directory recursively
+        # Upload directory recursively (incremental sync)
+        uploaded_count = 0
+        skipped_count = 0
         for file_path in local_path.rglob("*"):
             if file_path.is_file():
                 # Preserve relative path structure
                 relative_path = file_path.relative_to(local_path)
                 blob_path = f"{gcs_path.rstrip('/')}/{relative_path.as_posix()}"
                 blob = bucket.blob(blob_path)
+                local_mtime = file_path.stat().st_mtime
+                
+                # Check if blob exists and compare modification times
+                if blob.exists():
+                    remote_mtime = blob.updated.timestamp() if blob.updated else 0
+                    if local_mtime <= remote_mtime:
+                        skipped_count += 1
+                        logger.debug(f"Skipping {file_path} (remote is up to date)")
+                        continue
+                
                 blob.upload_from_filename(str(file_path))
+                uploaded_count += 1
                 logger.debug(f"Uploaded {file_path} to gs://{bucket_name}/{blob_path}")
-        logger.info(f"Uploaded directory {local_path} to gs://{bucket_name}/{gcs_path}")
+        
+        logger.info(
+            f"Synced directory {local_path} to gs://{bucket_name}/{gcs_path} "
+            f"({uploaded_count} uploaded, {skipped_count} skipped)"
+        )
     else:
         raise ValueError(f"Path is neither a file nor directory: {local_path}")
 

@@ -44,7 +44,13 @@ cp .env.example .env
 make ingest-daily    # Fetch today's data
 make curate          # Process and validate
 make build-features  # Calculate signals
-make run-dash        # Launch dashboard at http://localhost:8050
+
+# 6. (Optional) Sync to GCS for Cloud Run deployment
+# Set GCS_BUCKET_NAME in .env, then:
+make sync-to-gcs     # Upload data to Google Cloud Storage
+
+# 7. Launch dashboard
+make run-dash        # Dashboard at http://localhost:8050
 ```
 
 ### Docker Deployment (One Command)
@@ -200,7 +206,18 @@ make docker-ingest    # Run ingestion in container
 
 ## 🔧 Configuration
 
-Required environment variables (see `.env.example`):
+Required environment variables:
+
+**Required:**
+- `SEC_EDGAR_USER_AGENT`: Your name and email for SEC EDGAR API (e.g., "YourName your.email@example.com")
+- `SEC_EDGAR_USER_EMAIL`: Your email address
+
+**Optional (for Cloud Run deployment):**
+- `GCS_BUCKET_NAME`: Google Cloud Storage bucket name
+- `GCS_ENABLED`: Set to `true` to enable GCS sync
+- `GCS_MARTS_PREFIX`: GCS path prefix (default: `marts/`)
+
+See `.env.example` for a complete template (create it from the example if it doesn't exist):
 
 ## 📚 Documentation
 
