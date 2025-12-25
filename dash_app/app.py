@@ -175,17 +175,22 @@ def main() -> None:
             from config.settings import get_settings
             
             settings = get_settings()
-            if settings.gcs_bucket_name:
-                print("Syncing data from GCS on startup...")
+            bucket_name = settings.gcs_bucket_name
+            if not bucket_name:
+                print("⚠️  GCS_BUCKET_NAME not set. Skipping GCS sync.")
+            else:
+                print(f"Syncing data from GCS on startup (bucket: {bucket_name})...")
                 try:
                     sync_marts_from_gcs(
-                        bucket_name=settings.gcs_bucket_name,
+                        bucket_name=bucket_name,
                         local_marts_dir=settings.marts_dir,
                         gcs_prefix=settings.gcs_marts_prefix,
                     )
                     print("✅ Data sync complete")
                 except Exception as e:
                     print(f"⚠️  GCS sync failed (continuing anyway): {e}")
+                    import traceback
+                    traceback.print_exc()
                     print("Dashboard will start with existing local data or empty state.")
         except Exception as e:
             print(f"⚠️  Could not sync from GCS: {e}")
@@ -193,7 +198,8 @@ def main() -> None:
     
     # Disable debug in production (set via environment variable)
     debug_mode = os.getenv("DASH_DEBUG", "false").lower() == "true"
-    app.run_server(host="0.0.0.0", port=8050, debug=debug_mode)
+    port = int(os.getenv("PORT", "8050"))  # Cloud Run sets PORT env var
+    app.run_server(host="0.0.0.0", port=port, debug=debug_mode)
 
 
 if __name__ == "__main__":
