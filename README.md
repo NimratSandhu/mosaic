@@ -186,7 +186,9 @@ make curate           # Process raw data → curated tables
 make build-features   # Calculate features and signals
 make run-dash         # Start dashboard (http://localhost:8050)
 make query-db         # Query DuckDB database
-make backfill         # Backfill historical data
+make backfill         # Backfill historical data (defaults to today)
+make backfill-until END_DATE=2024-12-01  # Backfill until specific date (with deduplication)
+make sync-to-gcs      # Upload data to GCS after backfill
 ```
 
 ### Docker

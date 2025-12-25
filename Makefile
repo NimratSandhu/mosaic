@@ -32,6 +32,16 @@ query-db:
 backfill:
 	PYTHONPATH=src $(PYTHON) scripts/backfill_data.py --target-date $${TARGET_DATE:-$$(date +%Y-%m-%d)} --run-features
 
+backfill-until:
+	@if [ -z "$(END_DATE)" ]; then \
+		echo "Error: END_DATE is required"; \
+		echo "Usage: make backfill-until END_DATE=2024-12-01"; \
+		echo "Optional: TARGET_DATE=2024-01-01 (defaults to END_DATE - 120 days)"; \
+		exit 1; \
+	fi
+	@TARGET=$${TARGET_DATE:-$$(python3 -c "from datetime import date, timedelta; print((date.fromisoformat('$(END_DATE)') - timedelta(days=120)).isoformat())")}; \
+	PYTHONPATH=src $(PYTHON) scripts/backfill_data.py --target-date $$TARGET --end-date $(END_DATE) --run-features
+
 build-features:
 	PYTHONPATH=src $(PYTHON) -m flows.build_features --run-date $${RUN_DATE:-$$(date +%Y-%m-%d)}
 

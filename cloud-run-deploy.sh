@@ -33,15 +33,22 @@ gcloud config set project "$PROJECT_ID"
 # Build and deploy
 gcloud builds submit --config=cloudbuild.yaml
 
-# Update environment variables (if not already set in cloudbuild.yaml)
+# Update environment variables
 gcloud run services update mosaic-signal-platform \
     --region="$REGION" \
     --update-env-vars="GCS_BUCKET_NAME=$BUCKET_NAME,GCS_ENABLED=true" \
     --quiet
 
+# Ensure public access via IAM (required for public access)
+gcloud run services add-iam-policy-binding mosaic-signal-platform \
+    --region="$REGION" \
+    --member="allUsers" \
+    --role="roles/run.invoker" \
+    --quiet || true  # Ignore error if already set
+
 echo "✅ Deployment complete!"
 echo ""
-echo "Get the service URL:"
+echo "Service URL (publicly accessible):"
 gcloud run services describe mosaic-signal-platform \
     --region="$REGION" \
     --format="value(status.url)"

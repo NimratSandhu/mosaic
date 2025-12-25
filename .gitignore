@@ -9,6 +9,7 @@ __pycache__/
 .coverage
 coverage.xml
 venv/
+.cursor/
 
 # Python build
 *.pyc
@@ -26,4 +27,7 @@ data/raw/
 data/curated/
 data/marts/
 great_expectations/uncommitted/
+
+# md files
+DEPLOYMENT_PLAN.md
 

@@ -21,10 +21,10 @@ app = dash.Dash(
     ],
 )
 
-# Add API endpoints for triggering data pipeline
+# API endpoints
 @app.server.route("/api/health")
 def health_check():
-    """Health check endpoint for Cloud Run and other platforms."""
+    """Health check endpoint for Cloud Run."""
     return jsonify({"status": "ok"}), 200
 
 
@@ -69,38 +69,6 @@ def sync_data():
             
     except subprocess.TimeoutExpired:
         return jsonify({"error": "Sync timed out"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.server.route("/api/pipeline-status", methods=["GET"])
-def pipeline_status():
-    """Check if pipeline has been run (check if tables exist)."""
-    try:
-        from db.duckdb_client import DuckDBClient, get_db_path
-        
-        db_file = get_db_path()
-        with DuckDBClient(db_file) as db:
-            # Check if signal_scores table exists and has data
-            try:
-                result = db.query("SELECT COUNT(*) FROM marts.signal_scores")
-                signal_count = result[0][0] if result else 0
-                
-                result = db.query("SELECT MAX(date) FROM marts.signal_scores")
-                latest_date = result[0][0] if result and result[0][0] else None
-                
-                return jsonify({
-                    "status": "ready" if signal_count > 0 else "no_data",
-                    "signal_count": signal_count,
-                    "latest_date": str(latest_date) if latest_date else None,
-                }), 200
-            except Exception:
-                return jsonify({
-                    "status": "no_data",
-                    "signal_count": 0,
-                    "latest_date": None,
-                }), 200
-                
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
